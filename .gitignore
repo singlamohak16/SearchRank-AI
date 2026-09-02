@@ -1,0 +1,51 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Test and coverage output
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Packaging output
+build/
+dist/
+*.egg-info/
+
+# Generated catalogue and retrieval artifacts
+data/raw/
+data/processed/
+artifacts/
+embeddings/
+indexes/
+*.npy
+*.npz
+*.faiss
+
+# Local databases and service volumes
+pgdata/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
