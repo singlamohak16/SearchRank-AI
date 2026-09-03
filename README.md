@@ -1,21 +1,30 @@
 # SearchRank-AI
 
-SearchRank-AI is a portfolio project for evidence-grounded laptop search and comparison. Its
+SearchRank-AI is a portfolio project for evidence-grounded smartphone search and comparison. Its
 target architecture uses agentic retrieval-augmented generation (RAG), but the project is being
 built and evaluated incrementally so every result remains explainable and reproducible.
 
 ## Current status
 
-**Phase 0 — repository and project foundation (complete).** The repository currently contains packaging,
-configuration, logging, documentation, and smoke-test foundations only. It does not yet contain a
-dataset, retrieval system, database, agent workflow, API, user interface, or measured search
-results.
+**Phases 0 and 1 are complete.** The approved 91mobiles source audit retains 3,062 of 4,000 rows
+as price- and capacity-filter-ready smartphones. The reproducible catalogue has stable IDs, INR
+prices, explicit RAM/storage, normalized user-rating scales, comparison specifications, dates, and
+source URLs. Missing values remain empty and five optional source attributes are excluded.
+
+See [the adopted catalogue audit](docs/MOBILE_CATALOGUE_AUDIT.md) for the measured findings,
+core-only schema, reproduction command, and limitations. The rejected
+[Amazon phone audit](docs/PHONE_DATASET_AUDIT.md), earlier [laptop audit](docs/DATASET_AUDIT.md),
+and [screening notes](docs/DATASET_CANDIDATES.md) remain as decision history. Raw data, processed
+catalogues, and generated audit files stay local and ignored by Git.
+
+No retrieval system, database, agent workflow, API, user interface, or search-quality result exists
+yet. Phase 2 will begin only after explicit approval.
 
 ## Target capabilities
 
 When complete, the focused application will:
 
-1. Understand natural-language laptop-shopping requests.
+1. Understand natural-language smartphone-shopping requests.
 2. Extract explicit price, RAM, brand, rating, and storage constraints.
 3. Compare BM25 keyword, semantic, and hybrid retrieval.
 4. Apply strict constraints in deterministic Python code.
@@ -38,12 +47,22 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-Run the Phase 0 checks:
+Run the current checks:
 
 ```powershell
 python -m pytest
 python -m ruff check .
 python -m ruff format --check .
+```
+
+Rebuild the adopted local catalogue after placing the approved archive at the documented ignored
+raw-data path:
+
+```powershell
+python -X utf8 -m searchrank_ai.mobile_catalogue `
+  --archive data\raw\suresh_91mobiles_2008_2026\source.zip `
+  --audit-dir artifacts\suresh_91mobiles_audit\new-run `
+  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue-new.csv
 ```
 
 Environment variables are documented in `.env.example`. Copy it to `.env` only for local use;
@@ -57,7 +76,7 @@ src/searchrank_ai/   Application code
 tests/               Automated tests and permitted synthetic fixtures
 docs/                Build, design, architecture, and evaluation records
 data/                Local raw and processed data (ignored by default)
-artifacts/           Generated indexes and embeddings (ignored)
+artifacts/           Generated audits, indexes, and embeddings (ignored)
 ```
 
 ## Development principles

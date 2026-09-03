@@ -13,3 +13,48 @@ size, evaluation-set size, hardware, embedding model, caching conditions, and wh
 mocked or real.
 
 This file must never contain estimated or fabricated metrics presented as results.
+
+## 2026-09-03 — Dataset suitability checks, not retrieval evaluation
+
+The [Amazon India audit](DATASET_AUDIT.md) records actual full-file counts, source hash, title
+coverage, fixed-seed spot-check conditions, and limitations. Two runs of the final audit rules
+produced identical non-timing results and byte-identical review/sample/category artifacts.
+
+At the laptop-audit checkpoint, the synthetic suite had 56 passing tests. Coverage includes Hindi/English capacity
+patterns, GPU-vs-RAM separation, ambiguous and missing evidence, accessories/desktops, numeric
+sentinels, URL/ASIN agreement, source preservation, malformed input, and deterministic reruns.
+
+The tentative candidate counts are **not** extraction accuracy, a manually verified usable-product
+count, retrieval metrics, or proof of catalogue quality. No embedding model or LLM was used.
+No paid API or network call is needed for tests or re-auditing an existing local archive.
+
+## 2026-09-03 — Smartphone audit checkpoint
+
+The [smartphone source audit](PHONE_DATASET_AUDIT.md) covers all 3,529 records with 2,805 unique IDs.
+Its final rules identify 450 unique smartphone candidates, 260 explicit-core candidates, and 360
+if inferred unlabelled capacity pairs are included. These are heuristic coverage counts, not verified
+usable products, extraction accuracy, or retrieval results. The dataset is not recommended for adoption.
+
+The combined synthetic suite produced **110 passed in 0.41 seconds** on Windows 11 build 26200,
+Python 3.12.13. Ruff lint/format and dependency checks passed. Full-source repeat runs matched on all
+non-run report fields and byte-identical JSONL/sample/duplicate artifacts, and preserved the source hash.
+Fixed-seed category and explicit-core samples were inspected without an independent ground-truth set.
+No LLM, embedding model, retailer access, or retrieval evaluation was used.
+
+## 2026-09-04 — Adopted catalogue reproducibility checkpoint
+
+The [91mobiles catalogue audit](MOBILE_CATALOGUE_AUDIT.md) measured 4,000 source rows and 3,062
+eligible core-catalogue rows. The final set has 2,983 normalized ratings, 70 derived brands, unique
+product IDs/source URLs, and no exact source duplicates. These are dataset and cleaning measurements,
+not retrieval quality or independent specification-accuracy results.
+
+The combined synthetic suite produced **142 passed in 0.50 seconds** on Windows 11 build 26200,
+Python 3.12.13 on the final check. Tests cover field parsing, rating-scale
+normalization, feature-phone and announcement exclusion, URL/ID validation, missing-value
+preservation, raw-row retention, core-only schema enforcement, malformed sources, overwrite
+refusal, duplicate-ID refusal, and deterministic reruns.
+
+Two complete source runs matched on every report field except run metadata. Their cleaned CSV,
+records JSONL, and sample JSON files were byte-identical. The source hash remained unchanged. No
+LLM, embedding model, retailer request, image download, manually labelled ground truth, or search
+evaluation was used.

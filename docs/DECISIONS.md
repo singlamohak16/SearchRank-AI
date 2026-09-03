@@ -49,3 +49,104 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Reason:** Both are common, lightweight tools with small configurations. Runtime dependencies
   remain empty in Phase 0.
 
+## D-006 — Audit Amazon India before committing to dataset adoption
+
+- **Date:** 2026-09-03
+- **Status:** Audit completed; adoption rejected by the user on 2026-09-03
+- **Decision:** Download and preserve the approved asaniczka Amazon India 2023 archive, audit the
+  exact laptop category, and keep raw/derived records out of Git. The user approved the audit,
+  not automatic adoption of its output as a cleaned catalogue.
+- **Reason:** It supplies ASINs, Amazon India URLs, prices, and ratings at sufficient apparent scale.
+  [The measured audit](DATASET_AUDIT.md) found a plausible 4,702-candidate pool, 2,458 rated, but
+  mixed-language titles and substantial quality issues make suitability conditional.
+- **Alternatives discussed:** The newer Vibish India dataset has structured specifications but
+  lacked usable customer ratings in the inspected fields; the Dhanush Flipkart dataset is smaller
+  than the original target; other larger alternatives lacked source references or ratings. These
+  were screening observations, not comparable full-file audits.
+- **Outcome:** Revisit alternatives. Preserve the audit as evidence for rejecting the source.
+  Do not silently lower the target size, drop rating support, or translate raw titles into new facts.
+
+## D-007 — Use a streaming, evidence-preserving audit before production cleaning
+
+- **Date:** 2026-09-03
+- **Status:** Accepted for the audit only
+- **Decision:** Use Python's standard CSV/ZIP libraries and small deterministic title probes.
+  Separate original strings from normalized findings, uncertainty, and review flags. Keep
+  zero-valued price/rating sentinels explicitly unavailable; preserve all original IDs and rows.
+- **Reason:** One sequential read inventories the large archive without an extra extracted copy
+  or new runtime dependency. Fixed-seed samples and source hashes make review reproducible.
+- **Boundary:** This does not finalize the product schema, deduplication rules, Pandas cleaning
+  implementation, condition handling, or retrieval-language strategy. Coverage is not accuracy.
+- **Storage convention:** Audit-only capacity comparisons use 1 TB = 1,000 GB; multiple recognized
+  drives remain unresolved and original text is retained. Final total-storage semantics need review.
+
+## D-008 — Reopen selection without silently relaxing requirements
+
+- **Date:** 2026-09-03
+- **Status:** Accepted search criteria; replacement choice pending
+- **Decision:** Prioritize English listings and separate specifications while retaining the
+  original laptop scope, size target, rating requirement, and evidence/identifier rules.
+- **Finding:** [Replacement screening](DATASET_CANDIDATES.md) has not verified a complete match.
+  The smaller Flipkart source is the strongest next audit candidate for core functionality, but
+  requires approval of the size trade-off and acceptance of its June 2022 snapshot.
+- **Alternatives:** Larger or newer-looking sources have missing ratings, inconsistent engineered
+  values, different score semantics, or other provenance/coverage problems. No new source is adopted.
+
+## D-009 — Screen smartphones before deciding whether to change domains
+
+- **Date:** 2026-09-03
+- **Status:** Historical research complete; scope and audit subsequently approved (D-010)
+- **Decision:** Evaluate public smartphone dataset metadata and samples against the existing search,
+  ranking, evidence, and catalogue-quality requirements. Do not change the laptop scope merely
+  because the user approved this investigation.
+- **Finding:** A 2025 Amazon India mobile listing source is a stronger apparent fit than the screened
+  laptop candidates: 3,529 previewed rows, 2,805 unique ASINs, English evidence-rich titles, INR
+  prices, customer ratings/review counts, and source URLs. A full audit is still required because
+  specifications need title extraction, duplicate ASINs exist, and very low prices suggest possible
+  contamination or extraction errors.
+- **Alternatives:** Older structured phone datasets lack source identifiers/URLs or sufficient scale.
+  A newer 33,000-row source has implausible specifications and internally inconsistent feedback
+  counts in public samples. See [replacement screening](DATASET_CANDIDATES.md).
+- **Boundary:** No dataset was downloaded or adopted, and the application remains laptop-focused
+  unless the user explicitly approves both the smartphone scope and the candidate audit.
+
+## D-010 — Switch to smartphones; do not adopt the failed Amazon phone candidate
+
+- **Date:** 2026-09-03
+- **Status:** Smartphone scope approved; audit complete; adoption not recommended
+- **Decision:** Apply the user's explicit scope change to smartphones and audit the approved
+  Amazon India phone archive without automatically adopting its records. Preserve both raw sources
+  and previous audit history. Keep all phase/Git gates unchanged.
+- **Finding:** The file contains 3,529 rows and 2,805 distinct ASINs, but the audit flags 2,711 rows
+  for accessory/bundle review and finds only 450 unique heuristic smartphone candidates. There are
+  260 distinct explicit-core candidates (251 rated); counting inferred unlabelled pairs raises the
+  tentative core to 360 (350 rated), not to the originally desired scale.
+- **Reason:** A large mixed-product file is not a large smartphone catalogue. English text, valid
+  source IDs, and strong overall ratings do not compensate for category contamination and sparse
+  structured evidence. All numbers are audit-rule outputs, not verified true-product counts.
+- **Boundary:** No catalogue cleaning/schema adoption or later phase is authorized by this verdict.
+  A new dataset download requires approval. See [the phone audit](PHONE_DATASET_AUDIT.md).
+
+## D-011 — Adopt the audited 91mobiles core catalogue
+
+- **Date:** 2026-09-04
+- **Status:** Accepted; Phase 1 complete
+- **Decision:** Adopt Suresh Khadka's 4,000-row 91mobiles dataset after deterministic filtering.
+  Retain 3,062 records with a valid source URL, positive INR price, explicit RAM/storage of at least
+  1 GB/8 GB, and no announced/to-be-announced marker. Keep the complete raw archive and every raw
+  row in ignored local evidence; do not silently repair or merge records.
+- **Schema:** Use stable IDs derived from unique 91mobiles URL slugs plus name, brand, price, RAM,
+  storage, normalized user rating, processor, battery/charging, display, cameras, release evidence,
+  source URL, and image URL. Missing non-eligibility fields remain empty.
+- **User-directed exclusion:** Do not put `spec_score`, `antutu_score`, `awards`, `expert_rating`,
+  or `store` in the final catalogue. Their original values remain only in raw audit evidence.
+- **Reason:** The retained set meets the 2,000–5,000 target with separate filter attributes, unique
+  evidence links, high rating coverage, no duplicate IDs, and reproducible output. Capacity rules
+  separate sampled feature phones without using product-name knowledge or a price-only cutoff.
+- **Rating rule:** Normalize `/5` values directly and `/10` values mathematically to `/5` only when
+  the scale is explicit. Never treat `spec_score` or `expert_rating` as customer feedback.
+- **Limitations:** There is no review count or live-price timestamp; source facts were not checked
+  against manufacturers; some comparison fields remain missing; variants remain separate; and the
+  listed CC0 licence conflicts with the publisher's learning/non-commercial usage note. Keep the
+  data untracked and document rather than redistribute it. See
+  [the measured audit](MOBILE_CATALOGUE_AUDIT.md).

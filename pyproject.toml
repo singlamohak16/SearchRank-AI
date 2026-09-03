@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "searchrank-ai"
 version = "0.1.0.dev0"
-description = "An evidence-grounded agentic RAG system for laptop search and comparison"
+description = "An evidence-grounded agentic RAG system for smartphone search and comparison"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = []
@@ -35,4 +35,3 @@ select = ["B", "E", "F", "I", "SIM", "UP"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-
