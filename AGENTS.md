@@ -14,7 +14,9 @@ These instructions apply to all work in this repository.
 
 ## Engineering boundaries
 
-- Keep the scope to laptop catalogue search and comparison unless expansion is discussed first.
+- Keep the scope to smartphone catalogue search and comparison unless expansion is discussed first.
+  The user approved the change from laptops to smartphones on 2026-09-03; historical laptop audit
+  code and reports are retained as evidence, not adopted catalogue data.
 - Preserve raw data and original product IDs; never invent missing values.
 - Use deterministic Python for strict filters, score handling, and evidence checks where practical.
 - Keep modules small, typed where useful, and understandable in an undergraduate interview.
@@ -36,4 +38,3 @@ These instructions apply to all work in this repository.
 - Use the `phase/NN-description` branch for each phase.
 - Show status, changed files, test results, and proposed commits before asking to commit.
 - Never force-push, rewrite history, or use destructive Git commands without explicit approval.
-
