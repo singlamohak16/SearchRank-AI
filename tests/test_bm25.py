@@ -71,6 +71,31 @@ def test_product_name_weighting_and_stable_tie_breaking(tmp_path):
     assert [result.rank for result in results] == [1, 2, 3]
 
 
+@pytest.mark.parametrize(
+    ("query", "field", "value"),
+    [
+        ("oneplus", "brand", "OnePlus"),
+        ("snapdragon 8 gen 3", "processor", "Snapdragon 8 Gen 3"),
+        ("ltpo amoled", "display_type", "LTPO AMOLED"),
+        ("120w hypercharge", "charging", "120W HyperCharge"),
+        ("200 mp ois", "rear_camera", "200 MP OIS"),
+    ],
+)
+def test_exact_brand_processor_and_specification_queries(tmp_path, query, field, value):
+    target = row("phone-target", "Reference Device")
+    target[field] = value
+    index = index_for(
+        tmp_path,
+        [target, row("phone-control", "Control Device")],
+    )
+
+    results = index.search(query)
+
+    assert [result.product_id for result in results] == ["phone-target"]
+    assert results[0].source_url.endswith("/phone-target-price-in-india")
+    assert results[0].score > 0
+
+
 def test_search_handles_unknown_and_empty_queries_and_validates_limit(tmp_path):
     index = index_for(tmp_path, [row("phone-a", "Alpha Phone")])
     assert index.search("unknown-token") == ()

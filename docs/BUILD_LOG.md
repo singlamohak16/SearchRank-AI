@@ -164,3 +164,25 @@ Validation environment: Windows build 26200, Python 3.12.14.
 
 Phase 2 implementation and documentation are complete. No commit, push, or Phase 3 work was
 performed.
+
+## 2026-09-04 — Phase 2 collaborative branch review
+
+Status: complete locally; review changes are not committed or pushed.
+
+- Fetched the shared `SearchRank-AI-Team/SearchRank-AI` repository and reviewed the three Phase 2
+  commits already present on `phase/02-bm25-retrieval` against the latest `origin/main`.
+- Preserved the collaborator's BM25 design and documentation; no semantic, hybrid, constraint, or
+  Phase 3 behavior was added.
+- Re-ran the real 3,062-document benchmark and reproduced Recall@10, MRR@10, and NDCG@10 of 1.000
+  on its deliberately narrow 12-query exact-model judgment set.
+- Added direct synthetic coverage for exact brand, processor, display, charging, and camera keyword
+  queries, including traceable source URLs and positive scores.
+
+Validation on the reviewed branch:
+
+- `python -m pytest -q`: 162 passed.
+- Ruff lint and format checks passed for 25 files.
+- Dependency consistency and diff whitespace checks passed.
+
+Phase 2 is complete locally. The existing remote Phase 2 branch was not changed by this review, no
+merge was performed, and Phase 3 was not started.

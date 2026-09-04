@@ -195,7 +195,7 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 2 run produced **157 passing tests**. This is an engineering result, not a
+The latest full Phase 2 run produced **162 passing tests**. This is an engineering result, not a
 search-quality score.
 
 ### Build and search the BM25 baseline
