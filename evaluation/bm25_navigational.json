@@ -1,0 +1,67 @@
+{
+  "name": "BM25 smartphone navigational benchmark v1",
+  "catalogue_sha256": "c3428dd04e5d02c6a66ce00f5961f6b1f6ba9dcc30d86a37ffde84523619c7ea",
+  "judgment_scope": "One exact base model judged relevant per query; storage/RAM variants are not judged.",
+  "cases": [
+    {
+      "case_id": "iphone-17",
+      "query": "iphone 17",
+      "relevant_product_ids": ["91mobiles:apple-iphone-17"]
+    },
+    {
+      "case_id": "pixel-9-pro-fold",
+      "query": "google pixel 9 pro fold",
+      "relevant_product_ids": ["91mobiles:google-pixel-9-pro-fold"]
+    },
+    {
+      "case_id": "oneplus-nord-6",
+      "query": "oneplus nord 6",
+      "relevant_product_ids": ["91mobiles:oneplus-nord-6"]
+    },
+    {
+      "case_id": "galaxy-a57",
+      "query": "samsung galaxy a57",
+      "relevant_product_ids": ["91mobiles:samsung-galaxy-a57"]
+    },
+    {
+      "case_id": "redmi-turbo-5",
+      "query": "xiaomi redmi turbo 5",
+      "relevant_product_ids": ["91mobiles:xiaomi-redmi-turbo-5"]
+    },
+    {
+      "case_id": "edge-60-pro",
+      "query": "motorola edge 60 pro",
+      "relevant_product_ids": ["91mobiles:motorola-edge-60-pro"]
+    },
+    {
+      "case_id": "poco-x7-pro",
+      "query": "poco x7 pro",
+      "relevant_product_ids": ["91mobiles:poco-x7-pro"]
+    },
+    {
+      "case_id": "realme-gt-7",
+      "query": "realme gt 7",
+      "relevant_product_ids": ["91mobiles:realme-gt-7"]
+    },
+    {
+      "case_id": "vivo-x200-pro",
+      "query": "vivo x200 pro",
+      "relevant_product_ids": ["91mobiles:vivo-x200-pro"]
+    },
+    {
+      "case_id": "nothing-phone-3a",
+      "query": "nothing phone 3a",
+      "relevant_product_ids": ["91mobiles:nothing-phone-3a"]
+    },
+    {
+      "case_id": "oppo-find-x8-pro",
+      "query": "oppo find x8 pro",
+      "relevant_product_ids": ["91mobiles:oppo-find-x8-pro"]
+    },
+    {
+      "case_id": "infinix-gt-30-pro",
+      "query": "infinix gt 30 pro",
+      "relevant_product_ids": ["91mobiles:infinix-gt-30-pro"]
+    }
+  ]
+}
