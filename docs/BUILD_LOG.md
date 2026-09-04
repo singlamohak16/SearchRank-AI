@@ -132,3 +132,57 @@ Validation environment: Windows 11 build 26200, Python 3.12.13.
 
 Phase 1 implementation and documentation are complete. No commit, push, retrieval code, or later
 phase work was performed.
+
+## 2026-09-04 — Phase 2: BM25 keyword retrieval baseline
+
+Status: complete locally; commit and push not authorized.
+
+- Created the required `phase/02-bm25-retrieval` branch from the clean Phase 2 starting point.
+- Added exact Phase 1 catalogue-schema validation and deterministic Unicode tokenization.
+- Added inspectable BM25 scoring with fixed field weights, stable product-ID tie-breaking, and
+  traceable product names/source URLs in every result.
+- Added a versioned JSON index carrying the input catalogue hash, parameters, weights, lengths, and
+  term frequencies. Build/evaluation output refuses overwrite and remains ignored.
+- Added a command-line build, search, and binary-relevance evaluation workflow.
+- Added a catalogue-hash-pinned, manually reviewed 12-query exact-model benchmark across 12 brands.
+- Documented that this phase does not implement semantic meaning, query correction, hybrid ranking,
+  strict filters, storage, an LLM, or a user-facing request path.
+
+Measured local checkpoint: 3,062 documents; index size 1,145,647 bytes; Recall@10, MRR@10, and
+NDCG@10 each 1.000 on the narrow 12-query navigational set. One index build/save took 0.4963
+seconds. A warm in-memory loop of 1,200 searches averaged 0.332732 ms/search. Environment: Windows
+build 26200, Python 3.12.14, Intel64 Family 6 Model 186, 16 logical processors. No embedding model,
+LLM, network call, or result cache was used.
+
+Validation environment: Windows build 26200, Python 3.12.14.
+
+- `python -m pytest -q`: 157 passed on the final check.
+- Ruff lint and format checks passed for 25 files.
+- Dependency consistency and diff whitespace checks passed.
+- Two independent full index builds were byte-identical.
+- Two benchmark reports from independently loaded indexes were byte-identical.
+
+Phase 2 implementation and documentation are complete. No commit, push, or Phase 3 work was
+performed.
+
+## 2026-09-04 — Phase 2 collaborative branch review
+
+Status: complete locally; review changes are not committed or pushed.
+
+- Fetched the shared `SearchRank-AI-Team/SearchRank-AI` repository and reviewed the three Phase 2
+  commits already present on `phase/02-bm25-retrieval` against the latest `origin/main`.
+- Preserved the collaborator's BM25 design and documentation; no semantic, hybrid, constraint, or
+  Phase 3 behavior was added.
+- Re-ran the real 3,062-document benchmark and reproduced Recall@10, MRR@10, and NDCG@10 of 1.000
+  on its deliberately narrow 12-query exact-model judgment set.
+- Added direct synthetic coverage for exact brand, processor, display, charging, and camera keyword
+  queries, including traceable source URLs and positive scores.
+
+Validation on the reviewed branch:
+
+- `python -m pytest -q`: 162 passed.
+- Ruff lint and format checks passed for 25 files.
+- Dependency consistency and diff whitespace checks passed.
+
+Phase 2 is complete locally. The existing remote Phase 2 branch was not changed by this review, no
+merge was performed, and Phase 3 was not started.

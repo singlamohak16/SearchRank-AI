@@ -1,6 +1,7 @@
 # Evaluation
 
-No retrieval or agent evaluation has been run yet. Phase 0 validates only the project foundation.
+Phase 2 adds the first retrieval evaluation: a deliberately narrow BM25 exact-model benchmark.
+Semantic, hybrid, constraint-satisfaction, and agent evaluation have not been run.
 
 On 2026-09-02, the Phase 0 suite ran on Windows with Python 3.12.13 and pytest 8.4.2:
 3 smoke tests passed in 0.03 seconds. This is an engineering validation result, not a search-quality
@@ -58,3 +59,18 @@ Two complete source runs matched on every report field except run metadata. Thei
 records JSONL, and sample JSON files were byte-identical. The source hash remained unchanged. No
 LLM, embedding model, retailer request, image download, manually labelled ground truth, or search
 evaluation was used.
+
+## 2026-09-04 — BM25 navigational baseline
+
+The [Phase 2 retrieval report](BM25_RETRIEVAL.md) defines the implementation, evaluation scope,
+commands, environment, timings, and failure modes. The reviewed set has 12 exact-model queries and
+one exact base-model product ID judged relevant per query. On the adopted 3,062-document catalogue,
+BM25 returned every judged target at rank 1: Recall@10, MRR@10, and NDCG@10 were each 1.000.
+
+This perfect result must not be generalized. The set measures exact known-model navigation across
+12 brands, not broad shopping relevance, semantic concepts, misspellings, filters, family-level
+variant recall, or unseen queries. RAM/storage variants are unjudged. The evaluation file pins the
+catalogue SHA-256 so a changed catalogue fails validation rather than reusing stale judgments.
+
+No embedding model, LLM, network request, or result cache was used. The only caching condition in
+the reported query timing was an already loaded in-memory BM25 index.
