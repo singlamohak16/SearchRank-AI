@@ -150,3 +150,23 @@ evaluation choices remain deliberately open until their relevant phases.
   listed CC0 licence conflicts with the publisher's learning/non-commercial usage note. Keep the
   data untracked and document rather than redistribute it. See
   [the measured audit](MOBILE_CATALOGUE_AUDIT.md).
+
+## D-012 — Establish a dependency-free, field-weighted BM25 baseline
+
+- **Date:** 2026-09-04
+- **Status:** Accepted; Phase 2 complete locally
+- **Decision:** Use a small standard-library BM25 implementation with fixed `k1 = 1.5`, `b = 0.75`,
+  product-name weight 3, brand weight 2, and specification-evidence weight 1. Preserve product IDs
+  and source URLs in results, serialize a versioned local index, and order equal scores by product ID.
+- **Reason:** A direct implementation keeps the lexical baseline inspectable, deterministic, and
+  independently testable before semantic or hybrid retrieval is introduced. No external search
+  framework is needed for 3,062 documents.
+- **Evaluation:** Track a small, catalogue-hash-pinned exact-model benchmark and label its scope
+  honestly. The 12-case result establishes navigational behavior only, not broad product-search
+  quality or semantic understanding.
+- **Boundary:** Do not treat BM25 scores as constraint checks. Price, RAM, storage, brand, and rating
+  filters, query parsing, semantic retrieval, and hybrid ranking remain Phase 3. Generated indexes
+  and reports stay ignored because they derive from the uncommitted source catalogue.
+- **Alternatives:** `rank_bm25` would shorten the scorer but add a runtime dependency and would not
+  remove the need for schema, provenance, serialization, deterministic ties, or evaluation code.
+  A search server would be disproportionate before the persistence phase.

@@ -16,8 +16,9 @@ The system will understand the request, retrieve relevant smartphones, enforce t
 in deterministic Python code, collect the complete product evidence, and generate a comparison in
 which every product claim can be traced to a product ID and source URL.
 
-This is an incremental portfolio project. The data foundation is complete; retrieval, embeddings,
-the agent workflow, API, and interface are deliberately being added in later phases.
+This is an incremental portfolio project. The data foundation and BM25 keyword baseline are
+complete; semantic retrieval, embeddings, the agent workflow, API, and interface are deliberately
+being added in later phases.
 
 ## Why this project is technically interesting
 
@@ -39,7 +40,7 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 and Phase 1 are complete. Phase 2 has not started.**
+**Phase 0, Phase 1, and Phase 2 are complete. Phase 3 has not started.**
 
 What works today:
 
@@ -50,11 +51,14 @@ What works today:
 - Explicit rejection reasons for records that are not filter-ready smartphones.
 - Preservation of every original row and value in local audit evidence.
 - A cleaned, core-only catalogue containing 3,062 smartphones.
+- A deterministic BM25 index and command-line keyword search with traceable product IDs.
+- A 12-query reviewed exact-model benchmark and reproducible Recall@10, MRR@10, and NDCG@10.
 - Synthetic automated tests that do not require a paid API or network access.
 
 Not implemented yet:
 
-- BM25, semantic, or hybrid retrieval.
+- Semantic or hybrid retrieval.
+- Deterministic request filters for price, RAM, storage, brand, and rating.
 - Embeddings or vector storage.
 - PostgreSQL and pgvector ingestion.
 - LangGraph workflow and LLM integration.
@@ -191,8 +195,27 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest recorded Phase 1 run produced **142 passing tests**. This is an engineering result, not a
+The latest full Phase 2 run produced **157 passing tests**. This is an engineering result, not a
 search-quality score.
+
+### Build and search the BM25 baseline
+
+After generating the local catalogue, build the ignored retrieval index:
+
+```powershell
+.venv\Scripts\python.exe -X utf8 -m searchrank_ai.bm25 build `
+  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
+  --output artifacts\bm25\phase2-index.json
+
+.venv\Scripts\python.exe -X utf8 -m searchrank_ai.bm25 search `
+  --index artifacts\bm25\phase2-index.json `
+  --query "snapdragon 8 gen 3 amoled" `
+  --limit 10
+```
+
+BM25 searches names and stored specification text. It does not enforce numeric or categorical
+shopping constraints; that remains Phase 3 work. See the
+[Phase 2 retrieval report](docs/BM25_RETRIEVAL.md) for design, evaluation conditions, and limits.
 
 ## Repository structure
 
@@ -202,9 +225,11 @@ SearchRank-AI/
 │   ├── config.py              # validated environment configuration
 │   ├── logging_config.py      # shared logging setup
 │   ├── mobile_catalogue.py    # adopted audit and cleaning pipeline
+│   ├── bm25.py                # deterministic keyword index, search, and evaluation
 │   ├── data_audit.py          # retained historical laptop audit
 │   └── phone_audit.py         # retained rejected Amazon-phone audit
 ├── tests/                     # synthetic unit and reproducibility tests
+├── evaluation/                # reviewed retrieval queries and relevance judgments
 ├── docs/                      # architecture, decisions, audits, and evaluation notes
 ├── data/                      # local raw/processed data; ignored by Git
 ├── artifacts/                 # local audit/index outputs; ignored by Git
@@ -223,7 +248,7 @@ part of the engineering work, not active laptop scope.
 |---:|---|---|
 | 0 | Repository and project foundation | Complete |
 | 1 | Dataset selection, audit, schema, and cleaning | Complete |
-| 2 | BM25 keyword retrieval baseline | Not started |
+| 2 | BM25 keyword retrieval baseline | Complete |
 | 3 | Semantic retrieval, hybrid ranking, and strict constraints | Not started |
 | 4 | PostgreSQL and pgvector persistence | Not started |
 | 5 | Agentic RAG workflow and evidence tools | Not started |
@@ -259,6 +284,7 @@ history believable and prevents later components from hiding weaknesses in the f
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Adopted catalogue audit](docs/MOBILE_CATALOGUE_AUDIT.md)
+- [BM25 retrieval baseline](docs/BM25_RETRIEVAL.md)
 - [Decision log](docs/DECISIONS.md)
 - [Build log](docs/BUILD_LOG.md)
 - [Evaluation record](docs/EVALUATION.md)
