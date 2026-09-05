@@ -64,6 +64,30 @@ This is a retrieval component, not a user-facing search workflow. It does not pa
 constraints, call an LLM, retrieve semantically, combine rankers, fetch URLs, or load a database.
 Those boundaries keep the BM25 baseline independently measurable before Phase 3.
 
+The Phase 3 retrieval path is:
+
+```text
+18-field catalogue -> labelled search text -> pinned MiniLM document embeddings -> local NPZ index
+                  \-> Phase 2 BM25 index
+
+query -> optional strict constraints -> eligible product IDs
+      -> BM25 scores / semantic cosine scores
+      -> per-query score normalization
+      -> measured hybrid combination (alpha = 0.25)
+      -> stable ranked product IDs with filter evidence and source URLs
+```
+
+`semantic.py` owns search-text construction, the Sentence Transformers adapter, embedding
+normalization, and the versioned local vector artifact. `retrieval.py` aligns the catalogue, BM25
+index, and semantic index by product order and catalogue hash. It supports independently measurable
+`bm25`, `semantic`, and `hybrid` modes.
+
+Price, RAM, storage, rating, and included/excluded brands are checked against structured values
+before scores are normalized or ranked. A missing rating fails a minimum-rating constraint, and
+contradictory brand constraints are rejected. The hybrid score is 25% max-normalized BM25 and 75%
+shifted cosine similarity, selected from the measured 0.25/0.50/0.75 comparison. This phase uses an
+in-memory NumPy matrix; PostgreSQL and pgvector remain Phase 4 work.
+
 ## Target request flow
 
 ```text

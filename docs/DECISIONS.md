@@ -170,3 +170,46 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Alternatives:** `rank_bm25` would shorten the scorer but add a runtime dependency and would not
   remove the need for schema, provenance, serialization, deterministic ties, or evaluation code.
   A search server would be disproportionate before the persistence phase.
+
+## D-013 — Use a pinned MiniLM sentence encoder for the first semantic baseline
+
+- **Date:** 2026-09-05
+- **Status:** Accepted; measured locally
+- **Decision:** Use `sentence-transformers/all-MiniLM-L6-v2` at revision
+  `c21050a7ef692090620a6d037dd736908f9c7cf6`. Encode labelled product evidence and queries as
+  normalized 384-dimensional vectors, then use their dot product as cosine similarity.
+- **Reason:** The catalogue and queries are short English text, the model card explicitly supports
+  semantic search, and the 384-dimensional representation is realistic for a 3,062-product
+  undergraduate portfolio project. Pinning the revision makes the model input reproducible.
+- **Alternatives:** A larger encoder could improve ranking but would increase CPU, memory, download,
+  and future database costs before evaluation justifies them. Fine-tuning is outside project scope.
+- **Boundary:** Model files and generated vectors remain local and ignored. Unit tests use a tiny
+  deterministic encoder and never download the production model.
+
+## D-014 — Separate hard constraints from retrieval scores
+
+- **Date:** 2026-09-05
+- **Status:** Accepted
+- **Decision:** Filter the complete catalogue by maximum price, minimum RAM, minimum storage,
+  minimum user rating, and included/excluded brands before normalizing or ranking candidates.
+  Missing ratings fail a minimum-rating requirement. Conflicting included/excluded brands are
+  rejected instead of guessed.
+- **Reason:** Relevance scores are not proof that a numeric or categorical requirement is satisfied.
+  Pre-filtering also avoids losing valid constrained products to an arbitrary retrieval cutoff.
+- **Boundary:** Weight is not supported because the adopted catalogue has no reliable weight field.
+  Natural-language constraint extraction remains part of the later agent phase.
+
+## D-015 — Select hybrid alpha from the Phase 3 benchmark
+
+- **Date:** 2026-09-05
+- **Status:** Accepted; provisional until the broader Phase 7 evaluation
+- **Decision:** Normalize positive BM25 scores by the largest eligible BM25 score for that query;
+  map cosine similarity from `[-1, 1]` to `[0, 1]`; and calculate
+  `alpha * BM25 + (1 - alpha) * semantic`. Select `alpha = 0.25` from candidates 0.25, 0.50, and
+  0.75 using highest NDCG@10, then MRR@10, Recall@10, proximity to 0.5, and lower alpha.
+- **Evidence:** On the reviewed 20-case set, alpha 0.25 produced NDCG@10 0.928558, MRR@10 0.950000,
+  and Recall@10 0.925000. The other hybrid NDCG@10 results were 0.826990 at alpha 0.50 and 0.811935
+  at alpha 0.75.
+- **Limitation:** Semantic-only Recall@10 was slightly higher at 0.937500. The selected hybrid has
+  better top-rank quality on this small set, not universal superiority. Phase 7 must revisit the
+  choice with a broader evaluation.

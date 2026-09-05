@@ -1,7 +1,7 @@
 # Evaluation
 
-Phase 2 adds the first retrieval evaluation: a deliberately narrow BM25 exact-model benchmark.
-Semantic, hybrid, constraint-satisfaction, and agent evaluation have not been run.
+Phase 2 added the first narrow BM25 benchmark. Phase 3 now compares BM25, semantic, and hybrid
+retrieval and records deterministic constraint satisfaction. Agent evaluation has not been run.
 
 On 2026-09-02, the Phase 0 suite ran on Windows with Python 3.12.13 and pytest 8.4.2:
 3 smoke tests passed in 0.03 seconds. This is an engineering validation result, not a search-quality
@@ -74,3 +74,28 @@ catalogue SHA-256 so a changed catalogue fails validation rather than reusing st
 
 No embedding model, LLM, network request, or result cache was used. The only caching condition in
 the reported query timing was an already loaded in-memory BM25 index.
+
+## 2026-09-05 — Semantic, hybrid, and strict-constraint baseline
+
+The Phase 3 set expands evaluation to 20 reviewed cases: 12 exact base-model targets, four complete
+catalogue families used for semantic phrasing, and four variants selected by explicit strict
+constraints. The family judgments use product-family names in this catalogue; they are not claims
+about real-world gaming, camera, or durability quality. See
+[the full Phase 3 report](HYBRID_RETRIEVAL.md).
+
+All runs used the 3,062-product catalogue, the pinned
+`sentence-transformers/all-MiniLM-L6-v2` revision, 384-dimensional normalized embeddings, and
+`k = 10`.
+
+| Configuration | Recall@10 | MRR@10 | NDCG@10 | Constraint satisfaction |
+|---|---:|---:|---:|---:|
+| BM25 | 0.811111 | 0.812500 | 0.808979 | 1.000000 |
+| Semantic | 0.937500 | 0.887500 | 0.899768 | 1.000000 |
+| Hybrid, alpha 0.25 | 0.925000 | 0.950000 | 0.928558 | 1.000000 |
+| Hybrid, alpha 0.50 | 0.859722 | 0.827222 | 0.826990 | 1.000000 |
+| Hybrid, alpha 0.75 | 0.815278 | 0.816250 | 0.811935 | 1.000000 |
+
+Alpha 0.25 is the selected hybrid setting because it has the best hybrid NDCG@10 and MRR@10.
+Semantic-only retains slightly higher Recall@10. Every returned result satisfied its recorded
+constraints; this rate measures deterministic filter behavior on four constraint cases, not
+natural-language constraint extraction.
