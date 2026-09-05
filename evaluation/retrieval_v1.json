@@ -1,0 +1,188 @@
+{
+  "name": "SearchRank-AI retrieval benchmark v1",
+  "catalogue_sha256": "c3428dd04e5d02c6a66ce00f5961f6b1f6ba9dcc30d86a37ffde84523619c7ea",
+  "judgment_scope": "Twelve exact base-model targets, four explicitly enumerated product families, and four constraint-selected variants. Relevance is limited to the recorded catalogue snapshot.",
+  "cases": [
+    {
+      "case_id": "exact-iphone-17",
+      "category": "exact_model",
+      "query": "iphone 17",
+      "relevant_product_ids": ["91mobiles:apple-iphone-17"]
+    },
+    {
+      "case_id": "exact-pixel-9-pro-fold",
+      "category": "exact_model",
+      "query": "google pixel 9 pro fold",
+      "relevant_product_ids": ["91mobiles:google-pixel-9-pro-fold"]
+    },
+    {
+      "case_id": "exact-oneplus-nord-6",
+      "category": "exact_model",
+      "query": "oneplus nord 6",
+      "relevant_product_ids": ["91mobiles:oneplus-nord-6"]
+    },
+    {
+      "case_id": "exact-galaxy-a57",
+      "category": "exact_model",
+      "query": "samsung galaxy a57",
+      "relevant_product_ids": ["91mobiles:samsung-galaxy-a57"]
+    },
+    {
+      "case_id": "exact-redmi-turbo-5",
+      "category": "exact_model",
+      "query": "xiaomi redmi turbo 5",
+      "relevant_product_ids": ["91mobiles:xiaomi-redmi-turbo-5"]
+    },
+    {
+      "case_id": "exact-edge-60-pro",
+      "category": "exact_model",
+      "query": "motorola edge 60 pro",
+      "relevant_product_ids": ["91mobiles:motorola-edge-60-pro"]
+    },
+    {
+      "case_id": "exact-poco-x7-pro",
+      "category": "exact_model",
+      "query": "poco x7 pro",
+      "relevant_product_ids": ["91mobiles:poco-x7-pro"]
+    },
+    {
+      "case_id": "exact-realme-gt-7",
+      "category": "exact_model",
+      "query": "realme gt 7",
+      "relevant_product_ids": ["91mobiles:realme-gt-7"]
+    },
+    {
+      "case_id": "exact-vivo-x200-pro",
+      "category": "exact_model",
+      "query": "vivo x200 pro",
+      "relevant_product_ids": ["91mobiles:vivo-x200-pro"]
+    },
+    {
+      "case_id": "exact-nothing-phone-3a",
+      "category": "exact_model",
+      "query": "nothing phone 3a",
+      "relevant_product_ids": ["91mobiles:nothing-phone-3a"]
+    },
+    {
+      "case_id": "exact-oppo-find-x8-pro",
+      "category": "exact_model",
+      "query": "oppo find x8 pro",
+      "relevant_product_ids": ["91mobiles:oppo-find-x8-pro"]
+    },
+    {
+      "case_id": "exact-infinix-gt-30-pro",
+      "category": "exact_model",
+      "query": "infinix gt 30 pro",
+      "relevant_product_ids": ["91mobiles:infinix-gt-30-pro"]
+    },
+    {
+      "case_id": "semantic-google-folding-family",
+      "category": "semantic_family",
+      "query": "folding smartphone by google",
+      "constraints": {"included_brands": ["Google"]},
+      "relevant_product_ids": [
+        "91mobiles:google-pixel-10-pro-fold",
+        "91mobiles:google-pixel-9-pro-fold"
+      ]
+    },
+    {
+      "case_id": "semantic-vivo-folding-family",
+      "category": "semantic_family",
+      "query": "folding smartphone by vivo",
+      "constraints": {"included_brands": ["vivo"]},
+      "relevant_product_ids": [
+        "91mobiles:vivo-x-fold-3-pro",
+        "91mobiles:vivo-x-fold-5"
+      ]
+    },
+    {
+      "case_id": "semantic-asus-gaming-family",
+      "category": "semantic_family",
+      "query": "gaming handset from asus",
+      "constraints": {"included_brands": ["ASUS"]},
+      "relevant_product_ids": [
+        "91mobiles:asus-rog-phone",
+        "91mobiles:asus-rog-phone-2",
+        "91mobiles:asus-rog-phone-2-512gb",
+        "91mobiles:asus-rog-phone-3",
+        "91mobiles:asus-rog-phone-3-12gb-ram",
+        "91mobiles:asus-rog-phone-3-256gb",
+        "91mobiles:asus-rog-phone-5",
+        "91mobiles:asus-rog-phone-5-256gb",
+        "91mobiles:asus-rog-phone-5-ultimate",
+        "91mobiles:asus-rog-phone-5s-5g",
+        "91mobiles:asus-rog-phone-5s-5g-256gb",
+        "91mobiles:asus-rog-phone-5s-pro-5g"
+      ]
+    },
+    {
+      "case_id": "semantic-motorola-clamshell-family",
+      "category": "semantic_family",
+      "query": "clamshell smartphone from motorola",
+      "constraints": {"included_brands": ["Motorola"]},
+      "relevant_product_ids": [
+        "91mobiles:motorola-razr-2019",
+        "91mobiles:motorola-razr-40",
+        "91mobiles:motorola-razr-40-ultra",
+        "91mobiles:motorola-razr-50",
+        "91mobiles:motorola-razr-50-ultra",
+        "91mobiles:motorola-razr-60",
+        "91mobiles:motorola-razr-60-ultra",
+        "91mobiles:motorola-razr-fold",
+        "91mobiles:motorola-razr-fold-16gb-512gb-ram"
+      ]
+    },
+    {
+      "case_id": "constraint-oneplus-nord-6-base",
+      "category": "strict_constraints",
+      "query": "oneplus nord 6",
+      "constraints": {
+        "max_price_inr": 40000,
+        "min_ram_gb": 8,
+        "min_storage_gb": 256,
+        "min_rating_5": 4.4,
+        "included_brands": ["OnePlus"]
+      },
+      "relevant_product_ids": ["91mobiles:oneplus-nord-6"]
+    },
+    {
+      "case_id": "constraint-galaxy-a57-base",
+      "category": "strict_constraints",
+      "query": "samsung galaxy a57",
+      "constraints": {
+        "max_price_inr": 50000,
+        "min_ram_gb": 8,
+        "min_storage_gb": 256,
+        "min_rating_5": 4.4,
+        "included_brands": ["Samsung"]
+      },
+      "relevant_product_ids": ["91mobiles:samsung-galaxy-a57"]
+    },
+    {
+      "case_id": "constraint-poco-x7-pro-12gb",
+      "category": "strict_constraints",
+      "query": "poco x7 pro",
+      "constraints": {
+        "max_price_inr": 30000,
+        "min_ram_gb": 12,
+        "min_storage_gb": 256,
+        "min_rating_5": 4.4,
+        "included_brands": ["POCO"]
+      },
+      "relevant_product_ids": ["91mobiles:poco-x7-pro-12gb-ram"]
+    },
+    {
+      "case_id": "constraint-realme-gt-7t-512gb",
+      "category": "strict_constraints",
+      "query": "realme gt 7t",
+      "constraints": {
+        "max_price_inr": 40000,
+        "min_ram_gb": 12,
+        "min_storage_gb": 512,
+        "min_rating_5": 4.5,
+        "included_brands": ["realme"]
+      },
+      "relevant_product_ids": ["91mobiles:realme-gt-7t-512gb"]
+    }
+  ]
+}

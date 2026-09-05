@@ -186,3 +186,34 @@ Validation on the reviewed branch:
 
 Phase 2 is complete locally. The existing remote Phase 2 branch was not changed by this review, no
 merge was performed, and Phase 3 was not started.
+
+## 2026-09-05 — Phase 3: semantic, hybrid, and constrained retrieval
+
+Status: complete locally; commit and push not authorized.
+
+- Fetched the shared repository, confirmed Phase 2 was merged through PR #3, and created
+  `phase/03-hybrid-retrieval` from the latest `origin/main`.
+- Added labelled search-text construction and a small Sentence Transformers adapter using a pinned
+  `all-MiniLM-L6-v2` revision. Generated 3,062 normalized 384-dimensional embeddings locally.
+- Added a versioned, no-pickle NPZ artifact with catalogue hash, encoder identity, product IDs, and
+  aligned vectors. Two complete builds were byte-identical.
+- Added independently selectable BM25, semantic, and hybrid search with inspectable raw and
+  normalized score components and stable product-ID tie-breaking.
+- Added deterministic filters for maximum price, minimum RAM/storage/rating, and included/excluded
+  brands. Missing ratings fail rating requirements; conflicting brand rules are rejected.
+- Expanded the reviewed evaluation to 20 cases and compared hybrid alpha values 0.25, 0.50, and
+  0.75. Selected 0.25 by the documented metric rule.
+- Added synthetic tests with an injected fake encoder, keeping normal tests offline and independent
+  of the production model.
+
+Measured environment: Windows 11 build 26200, Python 3.12.14, Intel64 Family 6 Model 186,
+Sentence Transformers 5.7.0, PyTorch 2.14.0, and NumPy 2.5.2. One recorded CPU run took 11.2110
+seconds to load the cached model, 63.4999 seconds to encode the catalogue, and 0.2954 seconds to
+save the 4,391,982-byte index. Total: 75.0062 seconds. No LLM or API key was used.
+
+Measured retrieval results are recorded in `docs/EVALUATION.md` and `docs/HYBRID_RETRIEVAL.md`.
+The selected alpha 0.25 produced Recall@10 0.925000, MRR@10 0.950000, NDCG@10 0.928558, and
+constraint satisfaction 1.000000 on the 20-case set.
+
+Phase 3 is complete locally. No commit, push, pull request, merge, database, agent, API, UI, or
+Phase 4 work was performed.

@@ -16,9 +16,9 @@ The system will understand the request, retrieve relevant smartphones, enforce t
 in deterministic Python code, collect the complete product evidence, and generate a comparison in
 which every product claim can be traced to a product ID and source URL.
 
-This is an incremental portfolio project. The data foundation and BM25 keyword baseline are
-complete; semantic retrieval, embeddings, the agent workflow, API, and interface are deliberately
-being added in later phases.
+This is an incremental portfolio project. The data foundation, BM25 and semantic retrieval,
+measured hybrid ranking, and strict catalogue filters are complete. Database persistence, the
+agent workflow, API, and interface are deliberately being added in later phases.
 
 ## Why this project is technically interesting
 
@@ -40,7 +40,7 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0, Phase 1, and Phase 2 are complete. Phase 3 has not started.**
+**Phase 0 through Phase 3 are complete. Phase 4 has not started.**
 
 What works today:
 
@@ -53,17 +53,18 @@ What works today:
 - A cleaned, core-only catalogue containing 3,062 smartphones.
 - A deterministic BM25 index and command-line keyword search with traceable product IDs.
 - A 12-query reviewed exact-model benchmark and reproducible Recall@10, MRR@10, and NDCG@10.
+- A pinned 384-dimensional sentence-transformer and reproducible local semantic index.
+- BM25, semantic, and hybrid search with explicit score components.
+- Deterministic maximum-price, minimum-RAM, minimum-storage, minimum-rating, and brand filters.
+- A 20-case reviewed retrieval benchmark with a measured hybrid weight of `alpha = 0.25`.
 - Synthetic automated tests that do not require a paid API or network access.
 
 Not implemented yet:
 
-- Semantic or hybrid retrieval.
-- Deterministic request filters for price, RAM, storage, brand, and rating.
-- Embeddings or vector storage.
 - PostgreSQL and pgvector ingestion.
 - LangGraph workflow and LLM integration.
 - FastAPI endpoints or Streamlit interface.
-- Retrieval-quality or agent-quality metrics.
+- Agent-quality metrics and broad end-to-end evaluation.
 
 This distinction is intentional: the repository only claims behavior that has actually been built
 and tested.
@@ -195,7 +196,7 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 2 run produced **162 passing tests**. This is an engineering result, not a
+The latest full Phase 3 run produced **182 passing tests**. This is an engineering result, not a
 search-quality score.
 
 ### Build and search the BM25 baseline
@@ -217,6 +218,30 @@ BM25 searches names and stored specification text. It does not enforce numeric o
 shopping constraints; that remains Phase 3 work. See the
 [Phase 2 retrieval report](docs/BM25_RETRIEVAL.md) for design, evaluation conditions, and limits.
 
+### Build and search the semantic and hybrid indexes
+
+The first semantic build downloads the pinned public model revision. Later runs can use the cached
+model without a network connection.
+
+```powershell
+.venv\Scripts\python.exe -X utf8 -m searchrank_ai.retrieval build-semantic `
+  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
+  --output artifacts\semantic\phase3-index.npz `
+  --device cpu
+
+.venv\Scripts\python.exe -X utf8 -m searchrank_ai.retrieval search `
+  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
+  --bm25-index artifacts\bm25\phase2-index.json `
+  --semantic-index artifacts\semantic\phase3-index.npz `
+  --mode hybrid --alpha 0.25 `
+  --query "oneplus nord 6" `
+  --max-price 40000 --min-ram 8 --min-storage 256 --min-rating 4.4 `
+  --include-brand OnePlus
+```
+
+All strict constraints are checked against structured catalogue fields before ranking. See the
+[Phase 3 retrieval report](docs/HYBRID_RETRIEVAL.md) for formulas, measurements, and limitations.
+
 ## Repository structure
 
 ```text
@@ -226,6 +251,8 @@ SearchRank-AI/
 │   ├── logging_config.py      # shared logging setup
 │   ├── mobile_catalogue.py    # adopted audit and cleaning pipeline
 │   ├── bm25.py                # deterministic keyword index, search, and evaluation
+│   ├── semantic.py            # search text, encoder adapter, and local vector index
+│   ├── retrieval.py           # semantic/hybrid ranking, filters, and comparison evaluation
 │   ├── data_audit.py          # retained historical laptop audit
 │   └── phone_audit.py         # retained rejected Amazon-phone audit
 ├── tests/                     # synthetic unit and reproducibility tests
@@ -249,7 +276,7 @@ part of the engineering work, not active laptop scope.
 | 0 | Repository and project foundation | Complete |
 | 1 | Dataset selection, audit, schema, and cleaning | Complete |
 | 2 | BM25 keyword retrieval baseline | Complete |
-| 3 | Semantic retrieval, hybrid ranking, and strict constraints | Not started |
+| 3 | Semantic retrieval, hybrid ranking, and strict constraints | Complete |
 | 4 | PostgreSQL and pgvector persistence | Not started |
 | 5 | Agentic RAG workflow and evidence tools | Not started |
 | 6 | FastAPI backend and Streamlit demonstration | Not started |
@@ -278,13 +305,15 @@ history believable and prevents later components from hiding weaknesses in the f
 - Some release and specification claims have not been verified against manufacturers.
 - Kaggle lists the dataset as CC0, while the publisher also states learning/non-commercial use.
   For caution, raw data, processed data, and generated audit artifacts are not committed.
-- Retrieval and agent behavior cannot be evaluated until their later phases are implemented.
+- The 20-case retrieval benchmark is still too small for broad search-quality claims; agent
+  behavior cannot be evaluated until the agent phase.
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Adopted catalogue audit](docs/MOBILE_CATALOGUE_AUDIT.md)
 - [BM25 retrieval baseline](docs/BM25_RETRIEVAL.md)
+- [Semantic and hybrid retrieval](docs/HYBRID_RETRIEVAL.md)
 - [Decision log](docs/DECISIONS.md)
 - [Build log](docs/BUILD_LOG.md)
 - [Evaluation record](docs/EVALUATION.md)
