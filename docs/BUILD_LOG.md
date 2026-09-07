@@ -217,3 +217,51 @@ constraint satisfaction 1.000000 on the 20-case set.
 
 Phase 3 is complete locally. No commit, push, pull request, merge, database, agent, API, UI, or
 Phase 4 work was performed.
+
+## 2026-09-06 — Phase 4: PostgreSQL and pgvector persistence
+
+Status: implementation complete locally; commit and push not authorized.
+
+- Fast-forwarded local `main` to the merged Phase 3 pull request and created `phase/04-storage`.
+- Added a complete typed storage record matching the 18-field approved catalogue schema.
+- Added validation that rejects a mismatched catalogue checksum, product order, duplicate IDs,
+  invalid values, non-finite embeddings, and incomplete model metadata before database writes.
+- Added an isolated PostgreSQL schema with typed constraints, fixed-dimension pgvector embeddings,
+  and catalogue metadata for provenance and reproducibility.
+- Added transactional, advisory-locked full synchronization with parameterized upserts and stale-ID
+  deletion. Product IDs and missing values are preserved.
+- Added ordered complete product-detail lookup with explicit missing IDs and pgvector cosine search
+  with deterministic product-ID tie-breaking.
+- Added a command-line ingestion/details path using environment-only credentials.
+- Added deterministic storage tests and an optional live PostgreSQL integration test using a unique
+  disposable schema. No PostgreSQL, Docker, LLM, API, UI, or agent workflow was introduced.
+
+Real local artifact validation loaded 3,062 products and aligned all 384 dimensions against
+catalogue SHA-256 `c3428dd04e5d02c6a66ce00f5961f6b1f6ba9dcc30d86a37ffde84523619c7ea`
+and the pinned MiniLM encoder identity. The live integration test was skipped because this machine
+has no PostgreSQL service and `SEARCHRANK_TEST_DATABASE_URL` was not set; no database result is
+claimed.
+
+Validation:
+
+- `python -m pytest -q`: 191 passed, one live-database integration test skipped.
+- Ruff lint and format checks passed for 33 files.
+- Dependency consistency and diff whitespace checks passed.
+
+## 2026-09-07 — Phase 4 pull-request review fix
+
+Status: fixed and committed locally; push not authorized.
+
+- Reviewed PR #5 and found that pgvector type registration could open an implicit Psycopg
+  transaction before ingestion. The explicit ingestion transaction would then be only a savepoint,
+  allowing connection close to discard successful-looking writes.
+- Opened Psycopg connections in autocommit mode while retaining explicit atomic transaction blocks
+  for schema creation and catalogue ingestion.
+- Added a regression test that verifies the production connection is created with autocommit
+  enabled and updated the architecture/storage documentation.
+
+Validation:
+
+- `python -m pytest -q`: 191 passed, one live-database integration test skipped.
+- Ruff lint and format checks passed for 33 files.
+- Dependency consistency and diff whitespace checks passed.

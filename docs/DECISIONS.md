@@ -213,3 +213,24 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Limitation:** Semantic-only Recall@10 was slightly higher at 0.937500. The selected hybrid has
   better top-rank quality on this small set, not universal superiority. Phase 7 must revisit the
   choice with a broader evaluation.
+
+## D-016 — Persist complete products and aligned vectors in PostgreSQL/pgvector
+
+- **Date:** 2026-09-06
+- **Status:** Accepted; Phase 4 complete locally
+- **Decision:** Store all 18 approved catalogue fields and one fixed-dimension pgvector embedding
+  per product in an isolated `searchrank_ai` schema. Record the catalogue SHA-256, pinned encoder
+  identity, embedding dimension, product count, and schema version in a singleton metadata row.
+- **Ingestion rule:** Require exact catalogue hash and product-order agreement with the semantic
+  artifact before opening a write transaction. Upsert the complete incoming set, delete stale IDs,
+  and update metadata under one advisory transaction lock. Re-running identical inputs produces
+  the same logical state without changing product IDs or inventing values.
+- **Retrieval rule:** Product-detail lookup returns complete stored evidence in requested order and
+  separately reports unknown IDs. Vector search uses pgvector cosine distance and stable product-ID
+  tie-breaking. Phase 3 BM25/hybrid behavior stays independently testable in memory.
+- **Alternatives:** An ORM would obscure a small schema and transaction; PostgreSQL arrays would
+  not provide pgvector operators; an approximate HNSW/IVFFlat index adds tuning and build cost that
+  3,062 records do not yet justify. Docker remains intentionally deferred to Phase 7.
+- **Security and limitation:** Credentials remain environment-only and SQL values are parameters.
+  This machine has no PostgreSQL service, so the optional live integration test was not run; it is
+  gated by `SEARCHRANK_TEST_DATABASE_URL` and uses a unique disposable schema.
