@@ -11,6 +11,8 @@ requires-python = ">=3.11"
 authors = []
 dependencies = [
     "numpy>=1.26,<3",
+    "pgvector>=0.3,<1",
+    "psycopg[binary]>=3.2,<4",
     "sentence-transformers>=5,<6",
 ]
 
@@ -27,6 +29,9 @@ where = ["src"]
 addopts = "-ra --strict-markers"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "integration: requires an explicitly configured external test service",
+]
 
 [tool.ruff]
 line-length = 100
