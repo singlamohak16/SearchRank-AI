@@ -29,6 +29,10 @@ IDs, catalogue checksum, semantic-index product order, finite vectors, encoder i
 dimension. It then acquires an application-schema advisory lock and performs all upserts, stale-ID
 deletion, and metadata replacement in one transaction.
 
+The connection runs in autocommit mode so standalone reads and pgvector type registration do not
+leave an implicit transaction open. Schema creation and ingestion remain enclosed in explicit
+transaction blocks and therefore retain their all-or-nothing behavior.
+
 This is idempotent in the practical database sense: identical inputs produce the same product,
 embedding, and metadata state. The command does not preserve arbitrary manual database edits,
 because the generated catalogue is the source of truth.
@@ -65,9 +69,10 @@ Do not put the real URL in `.env.example`, logs, tests, or Git.
 ## Tests and evidence
 
 Deterministic unit tests cover complete field conversion, hash/order/ID validation, schema SQL,
-parameterized ingestion, missing-ID handling, vector dimensions, cosine result mapping, and unsafe
-schema rejection. The real ignored local files were loaded through the new boundary: 3,062 product
-rows aligned to a 3,062 by 384 semantic matrix and the recorded Phase 3 checksum/model identity.
+the autocommit connection model, parameterized ingestion, missing-ID handling, vector dimensions,
+cosine result mapping, and unsafe schema rejection. The real ignored local files were loaded
+through the new boundary: 3,062 product rows aligned to a 3,062 by 384 semantic matrix and the
+recorded Phase 3 checksum/model identity.
 
 The optional integration test performs two identical ingestions, product lookup, missing-ID
 handling, and real pgvector cosine search in a unique schema, then removes that schema. Run it only

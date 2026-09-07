@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pgvector.psycopg as pgvector_psycopg
+import psycopg
 import pytest
 
 from searchrank_ai.data_audit import sha256
@@ -101,6 +103,28 @@ class FakeConnection:
 
     def close(self) -> None:
         self.closed = True
+
+
+def test_connect_uses_autocommit_for_explicit_transaction_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection(FakeCursor())
+    captured: dict[str, Any] = {}
+
+    def connect(database_url: str, *, autocommit: bool) -> FakeConnection:
+        captured.update(database_url=database_url, autocommit=autocommit)
+        return connection
+
+    monkeypatch.setattr(psycopg, "connect", connect)
+    monkeypatch.setattr(pgvector_psycopg, "register_vector", lambda _connection: None)
+
+    storage = PostgresStorage.connect("postgresql://example.test/searchrank")
+
+    assert storage.connection is connection
+    assert captured == {
+        "database_url": "postgresql://example.test/searchrank",
+        "autocommit": True,
+    }
 
 
 def test_catalogue_batch_preserves_all_fields_and_alignment(tmp_path: Path) -> None:

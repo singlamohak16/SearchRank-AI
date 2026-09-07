@@ -244,6 +244,24 @@ claimed.
 
 Validation:
 
-- `python -m pytest -q`: 190 passed, one live-database integration test skipped.
+- `python -m pytest -q`: 191 passed, one live-database integration test skipped.
+- Ruff lint and format checks passed for 33 files.
+- Dependency consistency and diff whitespace checks passed.
+
+## 2026-09-07 — Phase 4 pull-request review fix
+
+Status: fixed and committed locally; push not authorized.
+
+- Reviewed PR #5 and found that pgvector type registration could open an implicit Psycopg
+  transaction before ingestion. The explicit ingestion transaction would then be only a savepoint,
+  allowing connection close to discard successful-looking writes.
+- Opened Psycopg connections in autocommit mode while retaining explicit atomic transaction blocks
+  for schema creation and catalogue ingestion.
+- Added a regression test that verifies the production connection is created with autocommit
+  enabled and updated the architecture/storage documentation.
+
+Validation:
+
+- `python -m pytest -q`: 191 passed, one live-database integration test skipped.
 - Ruff lint and format checks passed for 33 files.
 - Dependency consistency and diff whitespace checks passed.

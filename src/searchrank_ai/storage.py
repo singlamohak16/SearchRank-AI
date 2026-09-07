@@ -253,7 +253,9 @@ class PostgresStorage:
             raise RuntimeError(
                 "install the project storage dependencies before connecting"
             ) from error
-        connection = psycopg.connect(database_url)
+        # Reads should not leave a service connection idle in a transaction. Explicit
+        # transaction blocks below still make schema creation and ingestion atomic.
+        connection = psycopg.connect(database_url, autocommit=True)
         return cls(connection, schema=schema, vector_registrar=register_vector)
 
     def close(self) -> None:

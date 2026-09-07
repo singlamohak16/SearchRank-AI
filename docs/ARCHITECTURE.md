@@ -107,6 +107,10 @@ transaction lock prevents two ingestion runs for the same application schema fro
 Upserts and stale-row deletion occur in one transaction, so a failure cannot expose a partially
 synchronized catalogue.
 
+The Psycopg connection uses autocommit for standalone reads and type-registration queries. Schema
+creation and ingestion use explicit transaction blocks, ensuring they commit atomically without an
+implicit outer transaction that could be discarded when the connection closes.
+
 Database values use parameters, while the only interpolated identifiers are fixed table names
 inside a strictly validated lowercase schema. Product text remains untrusted data. Exact pgvector
 cosine search is appropriate for 3,062 records; an approximate index is deferred until measured

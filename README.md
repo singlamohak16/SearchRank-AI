@@ -198,7 +198,7 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 4 run produced **190 passing tests and one skipped live-database integration
+The latest full Phase 4 run produced **191 passing tests and one skipped live-database integration
 test**. The skip is expected when `SEARCHRANK_TEST_DATABASE_URL` is unset. This is an engineering
 result, not a search-quality score.
 
