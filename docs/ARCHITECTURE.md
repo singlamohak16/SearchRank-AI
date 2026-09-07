@@ -86,7 +86,32 @@ Price, RAM, storage, rating, and included/excluded brands are checked against st
 before scores are normalized or ranked. A missing rating fails a minimum-rating constraint, and
 contradictory brand constraints are rejected. The hybrid score is 25% max-normalized BM25 and 75%
 shifted cosine similarity, selected from the measured 0.25/0.50/0.75 comparison. This phase uses an
-in-memory NumPy matrix; PostgreSQL and pgvector remain Phase 4 work.
+in-memory NumPy matrix.
+
+The Phase 4 persistence path is:
+
+```text
+validated 18-field catalogue + aligned semantic NPZ
+    -> catalogue hash / product order / encoder / dimension checks
+    -> one transactional PostgreSQL synchronization
+    -> complete product rows + pgvector embeddings + catalogue metadata
+
+product IDs -> ordered complete evidence + explicit missing IDs
+query embedding -> pgvector cosine distance -> ranked complete product records
+```
+
+`storage.py` owns the database boundary. The `searchrank_ai.products` table stores the complete
+core catalogue and one fixed-dimension `vector` per product. A singleton metadata row records the
+schema version, catalogue hash, encoder identifier, dimension, and product count. An advisory
+transaction lock prevents two ingestion runs for the same application schema from interleaving.
+Upserts and stale-row deletion occur in one transaction, so a failure cannot expose a partially
+synchronized catalogue.
+
+Database values use parameters, while the only interpolated identifiers are fixed table names
+inside a strictly validated lowercase schema. Product text remains untrusted data. Exact pgvector
+cosine search is appropriate for 3,062 records; an approximate index is deferred until measured
+scale or latency justifies one. The existing in-memory hybrid retriever remains independently
+measurable rather than being silently replaced.
 
 ## Target request flow
 
