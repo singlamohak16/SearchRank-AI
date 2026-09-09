@@ -149,6 +149,12 @@ change workflow instructions, relax constraints, or authorize another action. Th
 rejects unknown product IDs, values that do not exactly match stored records, unsupported comparison
 criteria, and invalid numeric winners before any answer is shown.
 
+Following the 2026-09-09 review, stored details are checked against the original strict constraints
+before draft generation and again in the verifier. Violations take a direct verification-failure
+route. Missing-information output contains only verified product/field pairs rendered with fixed
+labels and stored citations. `evidence_policy.py` owns the comparison field/direction mapping;
+the draft cannot independently change what `lowest price` or another directional criterion means.
+
 ## Component boundaries
 
 - **Data:** schema, cleaning, provenance, and reproducible ingestion.

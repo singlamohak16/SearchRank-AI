@@ -40,8 +40,8 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 through Phase 5 are complete locally. Phase 4 is merged into `main`; Phase 5 remains on
-its local development branch until a separate commit approval.**
+**Phase 0 through Phase 5 are implemented locally. Phase 4 is merged into `main`; Phase 5 PR #6
+is open. The three Phase 5 review fixes are validated locally and await commit and push.**
 
 What works today:
 
@@ -205,7 +205,7 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 5 run produced **211 passing tests and two skipped integration tests**. The
+The latest full Phase 5 review-fix run produced **261 passing tests and two skipped integration tests**. The
 skips are expected when the disposable PostgreSQL URL and explicit live-LLM opt-in are unset. This
 is an engineering result, not a search- or agent-quality score.
 
@@ -287,6 +287,10 @@ evidence verifier, and either the mock or configured real LLM provider. The grap
 request, validates constraints, searches, retrieves full evidence, generates a structured draft,
 and releases only claims that pass deterministic verification.
 
+Stored product records are checked against the strict constraints again before answer generation.
+Missing-information claims use verified product/field pairs and fixed wording; numerical comparison
+criteria are tied to an application-owned field and direction policy.
+
 The normal suite uses `MockLLMProvider` and never makes an API call. A live OpenAI smoke test is
 available only with a local key, explicit model, and `SEARCHRANK_RUN_LLM_INTEGRATION=1`. See the
 [Phase 5 agentic RAG report](docs/AGENTIC_RAG.md) for the routes, tool contracts, safeguards, and
@@ -306,6 +310,7 @@ SearchRank-AI/
 │   ├── storage.py             # PostgreSQL schema, ingestion, details, and pgvector search
 │   ├── agent_models.py        # typed workflow, claim, citation, and outcome contracts
 │   ├── agent_tools.py         # search, details, and deterministic verification tools
+│   ├── evidence_policy.py     # fixed field labels and comparison field/direction rules
 │   ├── llm.py                 # configurable mock and optional OpenAI providers
 │   ├── workflow.py            # bounded LangGraph routes and response rendering
 │   ├── data_audit.py          # retained historical laptop audit

@@ -14,41 +14,20 @@ from searchrank_ai.agent_models import (
     ProductCitation,
     SearchEvidence,
     SearchToolInput,
+    UnavailableInformation,
     VerificationIssue,
     VerificationReport,
 )
-from searchrank_ai.retrieval import HybridRetriever
+from searchrank_ai.evidence_policy import (
+    COMPARISON_RULES,
+    FIELD_LABELS,
+    NUMERIC_COMPARISON_FIELDS,
+    UNCOLLECTED_FIELD_LABELS,
+)
+from searchrank_ai.retrieval import HybridRetriever, SearchConstraints
 from searchrank_ai.storage import ProductLookup, StoredProduct
 
-FACT_FIELDS = frozenset(
-    {
-        "product_name",
-        "brand",
-        "price_inr",
-        "ram_gb",
-        "storage_gb",
-        "user_rating_5",
-        "processor",
-        "battery_mah",
-        "charging",
-        "display_inches",
-        "display_type",
-        "rear_camera",
-        "front_camera",
-        "release_date",
-        "release_status",
-    }
-)
-NUMERIC_COMPARISON_FIELDS = frozenset(
-    {
-        "price_inr",
-        "ram_gb",
-        "storage_gb",
-        "user_rating_5",
-        "battery_mah",
-        "display_inches",
-    }
-)
+FACT_FIELDS = frozenset(FIELD_LABELS)
 
 
 class ProductDetailsRepository(Protocol):
@@ -131,12 +110,62 @@ class EvidenceVerificationTool:
         products: Sequence[StoredProduct],
         *,
         comparison_criteria: Sequence[str] = (),
+        constraints: SearchConstraints | None = None,
     ) -> VerificationReport:
         evidence = {product.product_id: product for product in products}
         criteria = {value.strip().casefold() for value in comparison_criteria if value.strip()}
         issues: list[VerificationIssue] = []
         verified_facts: list[FactualClaim] = []
         verified_comparisons: list[ComparisonClaim] = []
+        verified_unavailable: list[UnavailableInformation] = []
+
+        active_constraints = constraints or SearchConstraints()
+        for product in products:
+            if not active_constraints.matches(product):
+                issues.append(
+                    VerificationIssue(
+                        "constraint_mismatch",
+                        f"stored product {product.product_id!r} violates the strict constraints",
+                    )
+                )
+
+        for index, item in enumerate(draft.unavailable_information):
+            if not isinstance(item, UnavailableInformation):
+                issues.append(
+                    VerificationIssue(
+                        "invalid_unavailable_information",
+                        "missing information must be structured",
+                        index,
+                    )
+                )
+                continue
+            product = evidence.get(item.product_id)
+            if product is None:
+                issues.append(
+                    VerificationIssue(
+                        "unknown_product",
+                        "missing information references an unknown product",
+                        index,
+                    )
+                )
+            elif item.field not in FACT_FIELDS and item.field not in UNCOLLECTED_FIELD_LABELS:
+                issues.append(
+                    VerificationIssue(
+                        "unsupported_field",
+                        "missing information references an unsupported field",
+                        index,
+                    )
+                )
+            elif item.field in FACT_FIELDS and getattr(product, item.field) is not None:
+                issues.append(
+                    VerificationIssue(
+                        "value_present",
+                        "the supposedly missing value exists in stored evidence",
+                        index,
+                    )
+                )
+            else:
+                verified_unavailable.append(item)
 
         if not draft.facts and not draft.comparisons and not draft.unavailable_information:
             issues.append(
@@ -229,6 +258,20 @@ class EvidenceVerificationTool:
                     )
                 )
                 continue
+            rule = COMPARISON_RULES.get(claim.criterion.casefold())
+            if (
+                rule is None
+                or claim.field != rule[0]
+                or (rule[1] is not None and claim.preference != rule[1])
+            ):
+                issues.append(
+                    VerificationIssue(
+                        "criterion_mismatch",
+                        "the field or direction does not follow the approved comparison criterion",
+                        index,
+                    )
+                )
+                continue
             values = {
                 product.product_id: getattr(product, claim.field) for product in comparison_products
             }
@@ -275,4 +318,5 @@ class EvidenceVerificationTool:
             issues=tuple(issues),
             verified_facts=tuple(verified_facts),
             verified_comparisons=tuple(verified_comparisons),
+            verified_unavailable=tuple(verified_unavailable),
         )

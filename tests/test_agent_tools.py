@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from types import SimpleNamespace
+
+import pytest
 
 from searchrank_ai.agent_models import (
     AnswerDraft,
@@ -11,12 +14,14 @@ from searchrank_ai.agent_models import (
     FactualClaim,
     ProductCitation,
     SearchToolInput,
+    UnavailableInformation,
 )
 from searchrank_ai.agent_tools import (
     CatalogueSearchTool,
     EvidenceVerificationTool,
     ProductDetailsTool,
 )
+from searchrank_ai.evidence_policy import COMPARISON_RULES
 from searchrank_ai.retrieval import SearchConstraints
 from searchrank_ai.storage import ProductLookup, StoredProduct
 
@@ -194,3 +199,88 @@ def test_evidence_verifier_requires_explicit_criterion_and_correct_winner() -> N
 
     assert unapproved.issues[0].code == "unapproved_criterion"
     assert wrong_winner.issues[0].code == "comparison_mismatch"
+
+
+@pytest.mark.parametrize("criterion, rule", list(COMPARISON_RULES.items()))
+def test_comparison_policy_accepts_its_field_and_direction(criterion, rule) -> None:
+    first = _product("phone-a", "Phone A")
+    second = replace(first, product_id="phone-b", source_url="https://example.test/phone-b")
+    field, direction = rule
+    first = replace(first, **{field: 2})
+    second = replace(second, **{field: 3})
+    preference = direction or "lower"
+    preferred = first if preference == "lower" else second
+    claim = ComparisonClaim(
+        (first.product_id, second.product_id),
+        field,
+        preferred.product_id,
+        preference,
+        criterion,
+        (_citation(first), _citation(second)),
+    )
+    report = EvidenceVerificationTool().invoke(
+        AnswerDraft(comparisons=(claim,)), (first, second), comparison_criteria=(criterion,)
+    )
+    assert report.passed
+
+
+@pytest.mark.parametrize(
+    "criterion, field, preference",
+    [
+        ("lowest price", "price_inr", "higher"),
+        ("highest price", "price_inr", "lower"),
+        ("highest rating", "price_inr", "higher"),
+        ("smallest display", "display_inches", "higher"),
+        ("gaming performance", "ram_gb", "higher"),
+    ],
+)
+def test_comparison_policy_rejects_wrong_fields_directions_and_unknown_criteria(
+    criterion, field, preference
+) -> None:
+    first = _product("phone-a", "Phone A", price=18000)
+    second = _product("phone-b", "Phone B", price=22000)
+    claim = ComparisonClaim(
+        (first.product_id, second.product_id),
+        field,
+        second.product_id,
+        preference,
+        criterion,
+        (_citation(first), _citation(second)),
+    )
+    report = EvidenceVerificationTool().invoke(
+        AnswerDraft(comparisons=(claim,)), (first, second), comparison_criteria=(criterion,)
+    )
+    assert not report.passed
+    assert report.issues[0].code == "criterion_mismatch"
+
+
+def test_verifier_independently_checks_database_constraints() -> None:
+    product = _product("phone-a", "Phone A", price=40000)
+    report = EvidenceVerificationTool().invoke(
+        AnswerDraft(facts=(FactualClaim("phone-a", "price_inr", 40000, _citation(product)),)),
+        (product,),
+        constraints=SearchConstraints(max_price_inr=25000),
+    )
+    assert not report.passed
+    assert report.issues[0].code == "constraint_mismatch"
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        "false claim",
+        {"product_id": "phone-a"},
+        {"product_id": "phone-a", "field": "weight_g", "text": "false claim"},
+        {"product_id": "phone-a", "field": None},
+    ],
+)
+def test_unavailable_parser_rejects_unstructured_or_extra_content(item) -> None:
+    with pytest.raises(ValueError, match="unavailable information"):
+        AnswerDraft.from_mapping({"unavailable_information": [item]})
+
+
+def test_unavailable_parser_preserves_structured_fields() -> None:
+    draft = AnswerDraft.from_mapping(
+        {"unavailable_information": [{"product_id": "phone-a", "field": "processor"}]}
+    )
+    assert draft.unavailable_information == (UnavailableInformation("phone-a", "processor"),)

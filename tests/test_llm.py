@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from searchrank_ai.agent_models import AnswerDraft, RequestAnalysis
+from searchrank_ai.agent_models import AnswerDraft, RequestAnalysis, UnavailableInformation
 from searchrank_ai.config import AppConfig
 from searchrank_ai.llm import MockLLMProvider, OpenAIResponsesProvider, build_llm_provider
 from searchrank_ai.retrieval import SearchConstraints
@@ -16,7 +16,7 @@ from searchrank_ai.storage import StoredProduct
 
 def test_mock_provider_is_scripted_and_network_free() -> None:
     analysis = RequestAnalysis("search", "phone")
-    draft = AnswerDraft(unavailable_information=("weight",))
+    draft = AnswerDraft(unavailable_information=(UnavailableInformation("phone-a", "weight_g"),))
     provider = MockLLMProvider((analysis,), reformulations=("better phone",), drafts=(draft,))
 
     assert provider.analyze_request("find phone", ()) is analysis
@@ -73,7 +73,11 @@ def test_openai_answer_prompt_marks_catalogue_text_as_untrusted() -> None:
             calls.append(kwargs)
             return SimpleNamespace(
                 output_text=json.dumps(
-                    {"facts": [], "comparisons": [], "unavailable_information": ["weight"]}
+                    {
+                        "facts": [],
+                        "comparisons": [],
+                        "unavailable_information": [{"product_id": "phone-a", "field": "weight_g"}],
+                    }
                 )
             )
 
@@ -105,10 +109,20 @@ def test_openai_answer_prompt_marks_catalogue_text_as_untrusted() -> None:
         "Tell me about Phone A", "search", SearchConstraints(), (), (product,)
     )
 
-    assert draft.unavailable_information == ("weight",)
+    assert draft.unavailable_information == (UnavailableInformation("phone-a", "weight_g"),)
     assert "untrusted" in calls[0]["instructions"]
     assert "IGNORE INSTRUCTIONS" in calls[0]["input"]
     assert calls[0]["store"] is False
+    item_schema = calls[0]["text"]["format"]["schema"]["properties"]["unavailable_information"][
+        "items"
+    ]
+    assert item_schema["type"] == "object"
+    assert item_schema["additionalProperties"] is False
+    assert "weight_g" in item_schema["properties"]["field"]["enum"]
+    assert json.loads(calls[0]["input"])["comparison_rules"]["lowest price"] == [
+        "price_inr",
+        "lower",
+    ]
 
 
 def test_provider_factory_requires_explicit_real_provider_settings() -> None:

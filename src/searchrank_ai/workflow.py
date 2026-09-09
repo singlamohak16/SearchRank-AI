@@ -20,29 +20,13 @@ from searchrank_ai.agent_tools import (
     EvidenceVerificationTool,
     ProductDetailsTool,
 )
+from searchrank_ai.evidence_policy import FIELD_LABELS, UNCOLLECTED_FIELD_LABELS
 from searchrank_ai.llm import LLMProvider
 from searchrank_ai.retrieval import SearchConstraints
 
 MAX_REFORMULATIONS = 1
 MAX_TOOL_CALLS = 4
 DEFAULT_RESULT_LIMIT = 5
-_FIELD_LABELS = {
-    "product_name": "product name",
-    "brand": "brand",
-    "price_inr": "price",
-    "ram_gb": "RAM",
-    "storage_gb": "storage",
-    "user_rating_5": "user rating",
-    "processor": "processor",
-    "battery_mah": "battery capacity",
-    "charging": "charging",
-    "display_inches": "display size",
-    "display_type": "display type",
-    "rear_camera": "rear camera",
-    "front_camera": "front camera",
-    "release_date": "release date",
-    "release_status": "release status",
-}
 
 
 def _path(state: WorkflowState, node: str) -> tuple[str, ...]:
@@ -71,7 +55,7 @@ def _render_verified_answer(state: WorkflowState) -> str:
         lines = ["Facts explicitly present in the catalogue:"]
         for claim in report.verified_facts:
             product = products[claim.product_id]
-            label = _FIELD_LABELS[claim.field]
+            label = FIELD_LABELS[claim.field]
             value = _format_value(claim.field, getattr(product, claim.field))
             lines.append(
                 f"- {product.product_name}: {label} is {value}. "
@@ -83,7 +67,7 @@ def _render_verified_answer(state: WorkflowState) -> str:
         for claim in report.verified_comparisons:
             preferred = products[claim.preferred_product_id]
             value = _format_value(claim.field, getattr(preferred, claim.field))
-            label = _FIELD_LABELS[claim.field]
+            label = FIELD_LABELS[claim.field]
             citations = ", ".join(
                 f"[{citation.product_id}]({citation.source_url})" for citation in claim.citations
             )
@@ -92,10 +76,16 @@ def _render_verified_answer(state: WorkflowState) -> str:
                 f"{label} ({value}) among the compared products. Evidence: {citations}"
             )
         sections.append("\n".join(lines))
-    unavailable = state["draft"].unavailable_information
+    unavailable = report.verified_unavailable
     if unavailable:
         lines = ["Information unavailable in the catalogue:"]
-        lines.extend(f"- {value}" for value in unavailable)
+        labels = {**FIELD_LABELS, **UNCOLLECTED_FIELD_LABELS}
+        for item in unavailable:
+            product = products[item.product_id]
+            lines.append(
+                f"- {product.product_name}: {labels[item.field]} is unavailable in this catalogue. "
+                f"[{product.product_id}]({product.source_url})"
+            )
         sections.append("\n".join(lines))
     return "\n\n".join(sections)
 
@@ -309,9 +299,15 @@ class AgentWorkflow:
     @staticmethod
     def _route_details(
         state: WorkflowState,
-    ) -> Literal["clarify", "no_results", "generate_search_answer", "generate_comparison"]:
+    ) -> Literal[
+        "clarify", "no_results", "generate_search_answer", "generate_comparison", "verify_evidence"
+    ]:
         if state.get("final_status") == "tool_limit_reached":
             return "no_results"
+        if any(not state["constraints"].matches(product) for product in state["product_evidence"]):
+            # Check the actual database values before sharing evidence with the provider.
+            # The verification tool records the failure through the normal bounded tool path.
+            return "verify_evidence"
         if state.get("final_status") == "clarification_required":
             return "clarify"
         if state["request_type"] == "compare":
@@ -342,12 +338,16 @@ class AgentWorkflow:
             state.get("draft", AnswerDraft()),
             state["product_evidence"],
             comparison_criteria=state.get("comparison_criteria", ()),
+            constraints=state["constraints"],
         )
         record = ToolCallRecord(
             "evidence_verification",
             len(state.get("draft", AnswerDraft()).facts)
-            + len(state.get("draft", AnswerDraft()).comparisons),
-            len(report.verified_facts) + len(report.verified_comparisons),
+            + len(state.get("draft", AnswerDraft()).comparisons)
+            + len(state.get("draft", AnswerDraft()).unavailable_information),
+            len(report.verified_facts)
+            + len(report.verified_comparisons)
+            + len(report.verified_unavailable),
         )
         update: WorkflowState = {
             "verification": report,

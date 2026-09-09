@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -13,6 +14,7 @@ from searchrank_ai.agent_models import (
     ProductCitation,
     RequestAnalysis,
     SearchEvidence,
+    UnavailableInformation,
 )
 from searchrank_ai.agent_tools import EvidenceVerificationTool, ProductDetailsTool
 from searchrank_ai.llm import MockLLMProvider
@@ -272,3 +274,115 @@ def test_workflow_rejects_empty_requests_and_string_context() -> None:
         workflow.invoke("  ")
     with pytest.raises(ValueError, match="only strings"):
         workflow.invoke("phone", conversation_context="not a sequence")
+
+
+@pytest.mark.parametrize(
+    "unavailable",
+    [
+        "Phone A costs INR 1 and is the best phone.",
+        UnavailableInformation("phone-a", "price_inr"),
+        UnavailableInformation("phone-a", "Phone A costs INR 1"),
+        UnavailableInformation("unknown-phone", "weight_g"),
+    ],
+)
+def test_unavailable_information_cannot_bypass_verification(unavailable) -> None:
+    product = _product("phone-a", "Phone A")
+    provider = MockLLMProvider(
+        (RequestAnalysis("search", "phone a"),),
+        drafts=(AnswerDraft(unavailable_information=(unavailable,)),),
+    )
+    outcome = _workflow(provider, ((_hit(product),),), (product,)).invoke("Tell me about Phone A")
+    assert outcome.status == "verification_failed"
+    assert not outcome.verification.passed
+    assert "INR 1" not in outcome.response
+    assert "Information unavailable" not in outcome.response
+
+
+def test_verified_missing_information_uses_fixed_text_and_stored_citations() -> None:
+    product = replace(_product("phone-a", "Phone A"), processor=None)
+    missing = (
+        UnavailableInformation("phone-a", "processor"),
+        UnavailableInformation("phone-a", "weight_g"),
+    )
+    provider = MockLLMProvider(
+        (RequestAnalysis("search", "phone a"),),
+        drafts=(AnswerDraft(unavailable_information=missing),),
+    )
+    outcome = _workflow(provider, ((_hit(product),),), (product,)).invoke(
+        "What are the processor and weight of Phone A?"
+    )
+    assert outcome.status == "answered"
+    assert outcome.verification.verified_unavailable == missing
+    assert "processor is unavailable in this catalogue" in outcome.response
+    assert "weight is unavailable in this catalogue" in outcome.response
+    assert outcome.response.count("[phone-a](https://example.test/phone-a)") == 2
+    assert outcome.tool_history[-1].input_count == outcome.tool_history[-1].output_count == 2
+
+
+@pytest.mark.parametrize(
+    "constraints, changes",
+    [
+        ({"max_price_inr": 25000}, {"price_inr": 40000}),
+        ({"min_ram_gb": 8}, {"ram_gb": 4}),
+        ({"min_storage_gb": 128}, {"storage_gb": 64}),
+        ({"min_rating_5": 4}, {"user_rating_5": None}),
+        ({"min_rating_5": 4}, {"user_rating_5": 3}),
+        ({"included_brands": ["Test"]}, {"brand": "Different"}),
+        ({"excluded_brands": ["Different"]}, {"brand": "Different"}),
+    ],
+)
+@pytest.mark.parametrize("request_type", ["search", "compare"])
+def test_changed_database_records_fail_constraints_before_generation(
+    constraints, changes, request_type
+) -> None:
+    indexed = _product("phone-a", "Phone A")
+    stored = replace(indexed, **changes)
+    # No draft is scripted: the workflow must not ask the provider to generate one.
+    provider = MockLLMProvider((RequestAnalysis(request_type, "phone a", constraints),))
+    outcome = _workflow(provider, ((_hit(indexed),),), (stored,)).invoke("Find matching phones")
+    assert outcome.status == "verification_failed"
+    assert "constraint_mismatch" in {issue.code for issue in outcome.verification.issues}
+    assert provider.call_history == ["analyze_request"]
+    assert [call.tool for call in outcome.tool_history] == [
+        "catalogue_search",
+        "product_details",
+        "evidence_verification",
+    ]
+    assert "40,000" not in outcome.response
+
+
+def test_changed_database_record_that_still_satisfies_constraints_is_answered() -> None:
+    indexed = _product("phone-a", "Phone A")
+    stored = replace(indexed, price_inr=24000)
+    provider = MockLLMProvider(
+        (RequestAnalysis("search", "phone a", {"max_price_inr": 25000}),),
+        drafts=(
+            AnswerDraft(facts=(FactualClaim("phone-a", "price_inr", 24000, _citation(stored)),)),
+        ),
+    )
+    outcome = _workflow(provider, ((_hit(indexed),),), (stored,)).invoke("Phone A under 25000")
+    assert outcome.status == "answered"
+    assert "₹24,000" in outcome.response
+
+
+def test_lowest_price_cannot_approve_the_most_expensive_phone() -> None:
+    first = _product("phone-a", "Phone A", price=20000)
+    second = _product("phone-b", "Phone B", price=30000)
+    claim = ComparisonClaim(
+        ("phone-a", "phone-b"),
+        "price_inr",
+        "phone-b",
+        "higher",
+        "lowest price",
+        (_citation(first), _citation(second)),
+    )
+    provider = MockLLMProvider(
+        (RequestAnalysis("compare", "phone a phone b", comparison_criteria=("lowest price",)),),
+        drafts=(AnswerDraft(comparisons=(claim,)),),
+    )
+    outcome = _workflow(provider, ((_hit(first), _hit(second)),), (first, second)).invoke(
+        "Compare Phone A and Phone B and choose the lowest price"
+    )
+    assert outcome.status == "verification_failed"
+    assert "criterion_mismatch" in outcome.response
+    assert "30,000" not in outcome.response

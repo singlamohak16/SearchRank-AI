@@ -260,3 +260,26 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Limitations:** The current implementation is an application service, not an HTTP API or UI.
   Mocked routing tests establish control-flow and grounding behavior, not real-model answer quality,
   latency, or production reliability.
+
+## D-018 — Close three Phase 5 verification gaps found in PR review
+
+- **Date:** 2026-09-09
+- **Status:** Implemented and validated locally; commit and push pending
+- **Evidence:** The former verifier accepted a fabricated sentence in `unavailable_information`,
+  a stored price above an already extracted budget, and a higher-price winner for `lowest price`.
+  These failures were reproduced with the mock provider even though the original 211 tests passed.
+- **Missing-information decision:** Replace free-form strings with product/field objects. Verify
+  that the field is null or on a fixed uncollected-attribute list, and render only approved pairs
+  with fixed text and stored citations. Add no columns or inferred facts to the catalogue.
+- **Constraint decision:** Recheck stored rows before generation and in the evidence tool using
+  the same deterministic filters used during search. Reject a violating batch rather than relax
+  constraints. This addresses answer correctness without requiring identical storage/index hashes;
+  retrieval relevance under different snapshots remains a separate limitation.
+- **Comparison decision:** Use an application-owned criterion-to-field/direction policy. Explicit
+  lower/higher preferences must match that policy; neutral comparisons may state either factual
+  direction. Unknown criteria are rejected, not mapped to unrelated numerical proxies.
+- **Alternative:** Prompt-only instructions leave all three failure paths possible. A free-text
+  validator would be difficult to make deterministic. Structured contracts and fixed rules keep
+  the checks inspectable and testable without another model call.
+- **Boundary:** These tests exercise deterministic enforcement with mocks. They do not prove that
+  a real provider always interprets the user's natural-language constraints or criteria correctly.

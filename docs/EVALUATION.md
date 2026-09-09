@@ -121,3 +121,17 @@ OpenAI test was skipped because `SEARCHRANK_RUN_LLM_INTEGRATION` was not enabled
 integration test was skipped because `SEARCHRANK_TEST_DATABASE_URL` was not set. No real-model
 accuracy, latency, token, cost, safety, or user-satisfaction metric is claimed. A broader reviewed
 agent evaluation remains Phase 7 work.
+
+## 2026-09-09 — Phase 5 review regression checkpoint
+
+Review of PR #6 reproduced three false verification successes: arbitrary text in the missing-data
+section, stored evidence violating the extracted budget, and a direction inconsistent with
+`lowest price`. The 2026-09-08 suite did not cover these cases; its passing result was insufficient
+to establish those guarantees.
+
+After the fixes, the full offline suite produced **261 passed and two skipped integrations**;
+the focused tool/workflow/provider suite produced **70 passed**. The 50 added cases cover each
+reproduced failure and related valid/invalid cases, including all strict filters against changed
+database records and all comparison-policy entries. Ruff lint/format (43 files), dependency
+consistency, and diff whitespace checks passed. No real LLM, PostgreSQL service, live catalogue
+update, or new retrieval-quality evaluation was used.

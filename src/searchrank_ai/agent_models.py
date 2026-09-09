@@ -138,12 +138,28 @@ class ComparisonClaim:
 
 
 @dataclass(frozen=True, slots=True)
+class UnavailableInformation:
+    """A proposed missing attribute for one retrieved product; never free-form prose."""
+
+    product_id: str
+    field: str
+
+    @classmethod
+    def from_mapping(cls, value: dict[str, Any]) -> UnavailableInformation:
+        if set(value) != {"product_id", "field"} or not all(
+            isinstance(item, str) and item.strip() for item in value.values()
+        ):
+            raise ValueError("unavailable information requires product_id and field strings")
+        return cls(product_id=value["product_id"], field=value["field"])
+
+
+@dataclass(frozen=True, slots=True)
 class AnswerDraft:
     """Structured answer content proposed by the configured LLM provider."""
 
     facts: tuple[FactualClaim, ...] = ()
     comparisons: tuple[ComparisonClaim, ...] = ()
-    unavailable_information: tuple[str, ...] = ()
+    unavailable_information: tuple[UnavailableInformation, ...] = ()
 
     @classmethod
     def from_mapping(cls, value: dict[str, Any]) -> AnswerDraft:
@@ -157,13 +173,15 @@ class AnswerDraft:
         ):
             raise ValueError("comparisons must be a list of objects")
         if not isinstance(unavailable, list) or not all(
-            isinstance(item, str) for item in unavailable
+            isinstance(item, dict) for item in unavailable
         ):
-            raise ValueError("unavailable information must be a list of strings")
+            raise ValueError("unavailable information must be a list of objects")
         return cls(
             facts=tuple(FactualClaim.from_mapping(item) for item in facts),
             comparisons=tuple(ComparisonClaim.from_mapping(item) for item in comparisons),
-            unavailable_information=tuple(item.strip() for item in unavailable if item.strip()),
+            unavailable_information=tuple(
+                UnavailableInformation.from_mapping(item) for item in unavailable
+            ),
         )
 
 
@@ -210,6 +228,7 @@ class VerificationReport:
     issues: tuple[VerificationIssue, ...]
     verified_facts: tuple[FactualClaim, ...]
     verified_comparisons: tuple[ComparisonClaim, ...]
+    verified_unavailable: tuple[UnavailableInformation, ...] = ()
 
 
 class WorkflowState(TypedDict, total=False):
