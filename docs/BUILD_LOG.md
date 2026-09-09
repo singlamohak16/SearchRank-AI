@@ -265,3 +265,32 @@ Validation:
 - `python -m pytest -q`: 191 passed, one live-database integration test skipped.
 - Ruff lint and format checks passed for 33 files.
 - Dependency consistency and diff whitespace checks passed.
+
+## 2026-09-08 — Phase 5: bounded agentic RAG workflow
+
+Status: implementation complete locally; commit and push not authorized.
+
+- Fast-forwarded local `main` after Phase 4 pull request #5 was merged and created
+  `phase/05-agentic-rag`.
+- Added one explicit LangGraph workflow with search, comparison, clarification, conflict,
+  unsupported, one-reformulation, no-result, and verification routes.
+- Added catalogue-search, product-details, and evidence-verification tools around the existing
+  retrieval and storage boundaries.
+- Added a configurable LLM provider interface, a scripted offline mock, and an optional OpenAI
+  Responses API adapter with strict structured output and response storage disabled.
+- Kept strict constraints, tool-call limits, evidence matching, citation checks, comparison winner
+  validation, and final answer rendering deterministic.
+- Added adversarial coverage proving that instructions embedded in catalogue text remain inert
+  evidence and cannot alter the workflow.
+- Documented the state, routes, contracts, trust boundary, limitations, and optional integration
+  setup in `docs/AGENTIC_RAG.md`.
+
+Validation:
+
+- `python -m pytest -q`: 211 passed; the optional live-LLM and live-database tests were skipped.
+- Focused Phase 5 suite: 20 passed; the optional live-LLM test was skipped.
+- Ruff lint and format checks passed for 42 files.
+- Dependency consistency and diff whitespace checks passed.
+
+Phase 5 implementation and documentation are complete locally. No commit, push, pull request,
+merge, API, UI, container, or Phase 6 work was performed.

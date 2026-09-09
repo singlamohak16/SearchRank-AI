@@ -234,3 +234,29 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Security and limitation:** Credentials remain environment-only and SQL values are parameters.
   This machine has no PostgreSQL service, so the optional live integration test was not run; it is
   gated by `SEARCHRANK_TEST_DATABASE_URL` and uses a unique disposable schema.
+
+## D-017 — Use one bounded LangGraph workflow with deterministic evidence enforcement
+
+- **Date:** 2026-09-08
+- **Status:** Accepted; Phase 5 complete locally
+- **Decision:** Use one explicit LangGraph state graph rather than a free-form ReAct loop or a group
+  of agents. Route each request to search, comparison, clarification, conflict, or unsupported
+  handling. Allow at most one unsuccessful-search reformulation and four total tool calls.
+- **Tool boundary:** Expose three meaningful tools: catalogue search, product-detail lookup, and
+  evidence verification. Strict constraints are passed to the existing deterministic retriever;
+  complete stored records remain the source of answer evidence.
+- **LLM boundary:** Permit a provider to propose structured request analysis, clarification text,
+  one reformulation, and a structured answer draft. Never let it enforce numeric or brand
+  constraints, verify facts, select a comparison winner without an explicit criterion, or render
+  unverified claims. The final answer is assembled only from verifier-approved stored values and
+  product-ID citations.
+- **Provider decision:** Keep normal tests network-free with a scripted mock. Provide an optional
+  OpenAI Responses API adapter that requests strict JSON, disables response storage, keeps secrets
+  in environment variables, and treats catalogue text as untrusted data. A real-provider call is
+  opt-in and was not run during this phase.
+- **Alternatives:** A free-form tool-using loop would make retry and cost limits harder to prove;
+  multiple agents would add orchestration without a measured need; fully deterministic parsing
+  would avoid an LLM but would not exercise the intended agentic RAG boundary.
+- **Limitations:** The current implementation is an application service, not an HTTP API or UI.
+  Mocked routing tests establish control-flow and grounding behavior, not real-model answer quality,
+  latency, or production reliability.
