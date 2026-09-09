@@ -234,3 +234,52 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Security and limitation:** Credentials remain environment-only and SQL values are parameters.
   This machine has no PostgreSQL service, so the optional live integration test was not run; it is
   gated by `SEARCHRANK_TEST_DATABASE_URL` and uses a unique disposable schema.
+
+## D-017 — Use one bounded LangGraph workflow with deterministic evidence enforcement
+
+- **Date:** 2026-09-08
+- **Status:** Accepted; Phase 5 complete locally
+- **Decision:** Use one explicit LangGraph state graph rather than a free-form ReAct loop or a group
+  of agents. Route each request to search, comparison, clarification, conflict, or unsupported
+  handling. Allow at most one unsuccessful-search reformulation and four total tool calls.
+- **Tool boundary:** Expose three meaningful tools: catalogue search, product-detail lookup, and
+  evidence verification. Strict constraints are passed to the existing deterministic retriever;
+  complete stored records remain the source of answer evidence.
+- **LLM boundary:** Permit a provider to propose structured request analysis, clarification text,
+  one reformulation, and a structured answer draft. Never let it enforce numeric or brand
+  constraints, verify facts, select a comparison winner without an explicit criterion, or render
+  unverified claims. The final answer is assembled only from verifier-approved stored values and
+  product-ID citations.
+- **Provider decision:** Keep normal tests network-free with a scripted mock. Provide an optional
+  OpenAI Responses API adapter that requests strict JSON, disables response storage, keeps secrets
+  in environment variables, and treats catalogue text as untrusted data. A real-provider call is
+  opt-in and was not run during this phase.
+- **Alternatives:** A free-form tool-using loop would make retry and cost limits harder to prove;
+  multiple agents would add orchestration without a measured need; fully deterministic parsing
+  would avoid an LLM but would not exercise the intended agentic RAG boundary.
+- **Limitations:** The current implementation is an application service, not an HTTP API or UI.
+  Mocked routing tests establish control-flow and grounding behavior, not real-model answer quality,
+  latency, or production reliability.
+
+## D-018 — Close three Phase 5 verification gaps found in PR review
+
+- **Date:** 2026-09-09
+- **Status:** Implemented and validated locally; commit and push pending
+- **Evidence:** The former verifier accepted a fabricated sentence in `unavailable_information`,
+  a stored price above an already extracted budget, and a higher-price winner for `lowest price`.
+  These failures were reproduced with the mock provider even though the original 211 tests passed.
+- **Missing-information decision:** Replace free-form strings with product/field objects. Verify
+  that the field is null or on a fixed uncollected-attribute list, and render only approved pairs
+  with fixed text and stored citations. Add no columns or inferred facts to the catalogue.
+- **Constraint decision:** Recheck stored rows before generation and in the evidence tool using
+  the same deterministic filters used during search. Reject a violating batch rather than relax
+  constraints. This addresses answer correctness without requiring identical storage/index hashes;
+  retrieval relevance under different snapshots remains a separate limitation.
+- **Comparison decision:** Use an application-owned criterion-to-field/direction policy. Explicit
+  lower/higher preferences must match that policy; neutral comparisons may state either factual
+  direction. Unknown criteria are rejected, not mapped to unrelated numerical proxies.
+- **Alternative:** Prompt-only instructions leave all three failure paths possible. A free-text
+  validator would be difficult to make deterministic. Structured contracts and fixed rules keep
+  the checks inspectable and testable without another model call.
+- **Boundary:** These tests exercise deterministic enforcement with mocks. They do not prove that
+  a real provider always interprets the user's natural-language constraints or criteria correctly.

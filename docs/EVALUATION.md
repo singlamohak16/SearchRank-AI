@@ -1,7 +1,8 @@
 # Evaluation
 
-Phase 2 added the first narrow BM25 benchmark. Phase 3 now compares BM25, semantic, and hybrid
-retrieval and records deterministic constraint satisfaction. Agent evaluation has not been run.
+Phase 2 added the first narrow BM25 benchmark. Phase 3 compares BM25, semantic, and hybrid
+retrieval and records deterministic constraint satisfaction. Phase 5 adds offline engineering tests
+for agent routing and grounding; broad real-model agent evaluation has not been run.
 
 On 2026-09-02, the Phase 0 suite ran on Windows with Python 3.12.13 and pytest 8.4.2:
 3 smoke tests passed in 0.03 seconds. This is an engineering validation result, not a search-quality
@@ -99,3 +100,38 @@ Alpha 0.25 is the selected hybrid setting because it has the best hybrid NDCG@10
 Semantic-only retains slightly higher Recall@10. Every returned result satisfied its recorded
 constraints; this rate measures deterministic filter behavior on four constraint cases, not
 natural-language constraint extraction.
+
+## 2026-09-08 — Agentic RAG engineering checkpoint
+
+The focused Phase 5 suite produced **20 passed and one skipped optional integration test**. The full
+repository suite produced **211 passed and two skipped optional integration tests**. Tests use a
+scripted LLM provider and synthetic product evidence; they do not make a network request or require
+a live database.
+
+Coverage includes separate search and comparison routes, clarification for ambiguous "best"
+requests, unsupported requests, conflicting brand constraints, one failed-search reformulation,
+no-result handling, the four-tool ceiling, exact field/value evidence checks, missing-value
+handling, product-ID citation matching, explicit comparison criteria, deterministic numeric winner
+validation, and catalogue prompt-injection text treated as inert data. Provider tests also verify
+that the optional OpenAI request uses structured output, disables response storage, and carries the
+untrusted-data instruction.
+
+This checkpoint validates implementation behavior, not response quality in the wild. The optional
+OpenAI test was skipped because `SEARCHRANK_RUN_LLM_INTEGRATION` was not enabled, and the PostgreSQL
+integration test was skipped because `SEARCHRANK_TEST_DATABASE_URL` was not set. No real-model
+accuracy, latency, token, cost, safety, or user-satisfaction metric is claimed. A broader reviewed
+agent evaluation remains Phase 7 work.
+
+## 2026-09-09 — Phase 5 review regression checkpoint
+
+Review of PR #6 reproduced three false verification successes: arbitrary text in the missing-data
+section, stored evidence violating the extracted budget, and a direction inconsistent with
+`lowest price`. The 2026-09-08 suite did not cover these cases; its passing result was insufficient
+to establish those guarantees.
+
+After the fixes, the full offline suite produced **261 passed and two skipped integrations**;
+the focused tool/workflow/provider suite produced **70 passed**. The 50 added cases cover each
+reproduced failure and related valid/invalid cases, including all strict filters against changed
+database records and all comparison-policy entries. Ruff lint/format (43 files), dependency
+consistency, and diff whitespace checks passed. No real LLM, PostgreSQL service, live catalogue
+update, or new retrieval-quality evaluation was used.

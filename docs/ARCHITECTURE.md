@@ -117,34 +117,54 @@ cosine search is appropriate for 3,062 records; an approximate index is deferred
 scale or latency justifies one. The existing in-memory hybrid retriever remains independently
 measurable rather than being silently replaced.
 
-## Target request flow
+## Current agent workflow and application boundary
 
 ```text
 User
-  -> Streamlit demonstration
-  -> FastAPI backend
+  -> FastAPI backend (planned for Phase 6)
   -> one bounded LangGraph workflow
+       -> request analysis and structured constraints
+       -> explicit search, comparison, clarification, conflict, or unsupported route
        -> catalogue search tool (BM25, semantic, or hybrid + strict filters)
        -> product details tool
        -> evidence verification tool
-  -> grounded answer with product-ID citations
+       -> at most one query reformulation and four total tool calls
+  -> deterministic rendering of verified facts, conclusions, and unavailable information
+  -> Streamlit demonstration (planned for Phase 6)
 
 Storage: PostgreSQL + pgvector
 ```
 
-The workflow will use an LLM only for request understanding, essential clarification, one bounded
-query reformulation, and grounded response generation. Price, RAM, storage, rating, brand filters,
-and deterministic evidence checks will remain ordinary Python logic.
+`workflow.py` now owns the single compiled LangGraph graph and its conditional routes. The LLM is
+limited to request understanding, essential clarification, one bounded query reformulation, and a
+structured answer draft. Price, RAM, storage, rating, brand filters, exact evidence checks, citation
+validation, and final rendering remain deterministic Python logic. Conflicting constraints stop
+before retrieval, a failed search receives no more than one reformulation, and the workflow refuses
+to exceed four recorded tool calls.
 
-## Planned component boundaries
+The configurable provider boundary has an offline scripted mock for normal tests and an optional
+OpenAI Responses API adapter. The adapter requests strict JSON output, disables response storage,
+and labels catalogue fields as untrusted data. Catalogue text can be quoted as evidence but cannot
+change workflow instructions, relax constraints, or authorize another action. The evidence verifier
+rejects unknown product IDs, values that do not exactly match stored records, unsupported comparison
+criteria, and invalid numeric winners before any answer is shown.
+
+Following the 2026-09-09 review, stored details are checked against the original strict constraints
+before draft generation and again in the verifier. Violations take a direct verification-failure
+route. Missing-information output contains only verified product/field pairs rendered with fixed
+labels and stored citations. `evidence_policy.py` owns the comparison field/direction mapping;
+the draft cannot independently change what `lowest price` or another directional criterion means.
+
+## Component boundaries
 
 - **Data:** schema, cleaning, provenance, and reproducible ingestion.
 - **Retrieval:** independently measurable BM25, semantic, and hybrid implementations.
 - **Storage:** product records and embeddings with traceable identifiers.
 - **Workflow:** state and conditional routes with explicit retry/tool-call limits.
 - **Providers:** configurable LLM interface plus a deterministic test double.
-- **API:** validation and orchestration without presentation logic.
-- **UI:** a single demonstration page that calls the API.
+- **API:** planned Phase 6 validation and orchestration without presentation logic.
+- **UI:** a planned Phase 6 single demonstration page that calls the API.
 - **Evaluation:** reviewed scenarios, reproducible metrics, and documented failure cases.
 
-These are target boundaries, not claims about completed functionality.
+Data, retrieval, storage, workflow, and provider boundaries are implemented through Phase 5. The API,
+UI, containerization, and broad evaluation remain later-phase work.

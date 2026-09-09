@@ -17,8 +17,8 @@ in deterministic Python code, collect the complete product evidence, and generat
 which every product claim can be traced to a product ID and source URL.
 
 This is an incremental portfolio project. The data foundation, BM25 and semantic retrieval,
-measured hybrid ranking, strict catalogue filters, and PostgreSQL/pgvector storage layer are
-complete. The agent workflow, API, and interface are deliberately being added in later phases.
+measured hybrid ranking, strict catalogue filters, PostgreSQL/pgvector storage, and bounded agent
+workflow are complete. The API and interface are deliberately being added in later phases.
 
 ## Why this project is technically interesting
 
@@ -40,7 +40,8 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 through Phase 4 are complete locally.**
+**Phase 0 through Phase 5 are implemented locally. Phase 4 is merged into `main`; Phase 5 PR #6
+is open. The three Phase 5 review fixes are validated locally and await commit and push.**
 
 What works today:
 
@@ -60,23 +61,29 @@ What works today:
 - A PostgreSQL schema for all 18 catalogue fields and aligned pgvector embeddings.
 - Transactional, reproducible ingestion guarded by catalogue hash, product order, and model identity.
 - Ordered product-detail lookup with explicit missing IDs and database-backed cosine vector search.
+- One bounded LangGraph with separate search, comparison, clarification, unsupported, conflict,
+  and no-result routes.
+- Catalogue-search, product-details, and deterministic evidence-verification tools.
+- One permitted search reformulation and a four-tool-call ceiling.
+- Structured answer generation whose values and product/source citations must pass deterministic
+  verification before rendering.
+- A configurable LLM interface, network-free mock, and optional OpenAI Responses API adapter.
 - Synthetic automated tests that do not require a paid API or network access.
 
 Not implemented yet:
 
-- LangGraph workflow and LLM integration.
 - FastAPI endpoints or Streamlit interface.
 - Agent-quality metrics and broad end-to-end evaluation.
 
 This distinction is intentional: the repository only claims behavior that has actually been built
 and tested.
 
-## Planned system design
+## System design
 
 ```mermaid
 flowchart TD
-    U[User request] --> UI[Streamlit interface]
-    UI --> API[FastAPI backend]
+    U[User request] --> UI[Streamlit interface - planned Phase 6]
+    UI --> API[FastAPI backend - planned Phase 6]
     API --> G[Bounded LangGraph workflow]
     G --> Q[Understand request and extract constraints]
     Q --> S[Catalogue Search Tool]
@@ -89,11 +96,11 @@ flowchart TD
     D --> L[Grounded comparison generation]
     L --> V[Evidence Verification Tool]
     V --> R[Answer with product-ID citations]
-    DB[(PostgreSQL + pgvector)] <--> S
+    IDX[(BM25 + semantic artifacts)] <--> S
     DB <--> D
 ```
 
-The planned workflow has one bounded graph and three meaningful tools:
+The implemented Phase 5 workflow has one bounded graph and three meaningful tools:
 
 1. **Catalogue Search Tool** — retrieves and ranks product IDs, then applies strict filters.
 2. **Product Details Tool** — returns complete stored evidence for selected product IDs.
@@ -198,9 +205,9 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 4 run produced **191 passing tests and one skipped live-database integration
-test**. The skip is expected when `SEARCHRANK_TEST_DATABASE_URL` is unset. This is an engineering
-result, not a search-quality score.
+The latest full Phase 5 review-fix run produced **261 passing tests and two skipped integration tests**. The
+skips are expected when the disposable PostgreSQL URL and explicit live-LLM opt-in are unset. This
+is an engineering result, not a search- or agent-quality score.
 
 ### Build and search the BM25 baseline
 
@@ -272,6 +279,23 @@ the same logical database state. Retrieve complete evidence by product ID with:
 See the [Phase 4 storage report](docs/STORAGE.md) for schema, validation, integration-test setup,
 and current limitations.
 
+### Run the bounded agent workflow
+
+Phase 5 provides an application service rather than a public command. Construct `AgentWorkflow`
+with the existing hybrid retriever, a product-details repository such as `PostgresStorage`, the
+evidence verifier, and either the mock or configured real LLM provider. The graph classifies the
+request, validates constraints, searches, retrieves full evidence, generates a structured draft,
+and releases only claims that pass deterministic verification.
+
+Stored product records are checked against the strict constraints again before answer generation.
+Missing-information claims use verified product/field pairs and fixed wording; numerical comparison
+criteria are tied to an application-owned field and direction policy.
+
+The normal suite uses `MockLLMProvider` and never makes an API call. A live OpenAI smoke test is
+available only with a local key, explicit model, and `SEARCHRANK_RUN_LLM_INTEGRATION=1`. See the
+[Phase 5 agentic RAG report](docs/AGENTIC_RAG.md) for the routes, tool contracts, safeguards, and
+setup boundary.
+
 ## Repository structure
 
 ```text
@@ -284,6 +308,11 @@ SearchRank-AI/
 │   ├── semantic.py            # search text, encoder adapter, and local vector index
 │   ├── retrieval.py           # semantic/hybrid ranking, filters, and comparison evaluation
 │   ├── storage.py             # PostgreSQL schema, ingestion, details, and pgvector search
+│   ├── agent_models.py        # typed workflow, claim, citation, and outcome contracts
+│   ├── agent_tools.py         # search, details, and deterministic verification tools
+│   ├── evidence_policy.py     # fixed field labels and comparison field/direction rules
+│   ├── llm.py                 # configurable mock and optional OpenAI providers
+│   ├── workflow.py            # bounded LangGraph routes and response rendering
 │   ├── data_audit.py          # retained historical laptop audit
 │   └── phone_audit.py         # retained rejected Amazon-phone audit
 ├── tests/                     # synthetic unit and reproducibility tests
@@ -308,8 +337,8 @@ part of the engineering work, not active laptop scope.
 | 1 | Dataset selection, audit, schema, and cleaning | Complete |
 | 2 | BM25 keyword retrieval baseline | Complete |
 | 3 | Semantic retrieval, hybrid ranking, and strict constraints | Complete |
-| 4 | PostgreSQL and pgvector persistence | Complete locally |
-| 5 | Agentic RAG workflow and evidence tools | Not started |
+| 4 | PostgreSQL and pgvector persistence | Complete and merged |
+| 5 | Agentic RAG workflow and evidence tools | Complete locally |
 | 6 | FastAPI backend and Streamlit demonstration | Not started |
 | 7 | Evaluation, hardening, and Docker Compose | Not started |
 | 8 | Final documentation and portfolio release | Not started |
@@ -338,8 +367,8 @@ history believable and prevents later components from hiding weaknesses in the f
   integration test therefore requires an explicitly configured disposable test database.
 - Kaggle lists the dataset as CC0, while the publisher also states learning/non-commercial use.
   For caution, raw data, processed data, and generated audit artifacts are not committed.
-- The 20-case retrieval benchmark is still too small for broad search-quality claims; agent
-  behavior cannot be evaluated until the agent phase.
+- The 20-case retrieval benchmark is still too small for broad search-quality claims. Phase 5
+  validates workflow behavior with mocks; broad real-model agent evaluation remains Phase 7 work.
 
 ## Documentation
 
@@ -348,6 +377,7 @@ history believable and prevents later components from hiding weaknesses in the f
 - [BM25 retrieval baseline](docs/BM25_RETRIEVAL.md)
 - [Semantic and hybrid retrieval](docs/HYBRID_RETRIEVAL.md)
 - [PostgreSQL and pgvector storage](docs/STORAGE.md)
+- [Agentic RAG workflow and evidence tools](docs/AGENTIC_RAG.md)
 - [Decision log](docs/DECISIONS.md)
 - [Build log](docs/BUILD_LOG.md)
 - [Evaluation record](docs/EVALUATION.md)
