@@ -125,6 +125,26 @@ def test_search_request_uses_search_specific_route_and_grounded_response() -> No
     assert "[phone-a](https://example.test/phone-a)" in outcome.response
 
 
+def test_rendered_markdown_escapes_untrusted_product_names() -> None:
+    product = _product(
+        "phone-a",
+        "Phone [bad](https://evil.example)\n![pixel](https://evil.example/pixel.png)",
+    )
+    provider = MockLLMProvider(
+        (RequestAnalysis("search", "phone a"),),
+        drafts=(
+            AnswerDraft(facts=(FactualClaim("phone-a", "price_inr", 20_000, _citation(product)),)),
+        ),
+    )
+
+    outcome = _workflow(provider, ((_hit(product),),), (product,)).invoke("Find Phone A")
+
+    assert outcome.status == "answered"
+    assert "\\[bad\\]\\(https://evil.example\\)" in outcome.response
+    assert "\\!\\[pixel\\]\\(https://evil.example/pixel.png\\)" in outcome.response
+    assert "\n![pixel]" not in outcome.response
+
+
 def test_comparison_uses_distinct_route_and_verified_numeric_conclusion() -> None:
     first = _product("phone-a", "Phone A", price=18_000)
     second = _product("phone-b", "Phone B", price=22_000)
