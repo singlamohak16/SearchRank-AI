@@ -135,3 +135,29 @@ reproduced failure and related valid/invalid cases, including all strict filters
 database records and all comparison-policy entries. Ruff lint/format (43 files), dependency
 consistency, and diff whitespace checks passed. No real LLM, PostgreSQL service, live catalogue
 update, or new retrieval-quality evaluation was used.
+
+## 2026-09-10 — Phase 6 API and interface engineering checkpoint
+
+The focused Phase 6 API, HTTP-client, service-assembly, and Streamlit suite produced **16 passed**.
+The full repository suite produced **278 passed and two skipped optional integrations**. The new
+tests inject search, workflow, and product fakes; they verify all four route contracts,
+strict-constraint delegation, complete product serialization, workflow audit output, stable
+validation and not-found errors, degraded readiness, URL encoding, client transport failures, and
+both Streamlit views without a database, model download, or paid API.
+
+A separate local smoke run loaded the real 3,062-product catalogue, aligned Phase 2/3 indexes, and
+cached pinned embedding model with offline-only startup. Hybrid search for `Samsung AMOLED` with a
+₹30,000 maximum returned three stored IDs. This confirms local assembly and one search path; it is
+not a new relevance judgment or latency measurement. PostgreSQL and the real LLM provider were not
+configured, so their API paths were validated with fakes and the health endpoint correctly reported
+those production components unavailable.
+
+The real FastAPI `/health` and constrained `/search` smoke requests returned HTTP 200. A headless
+Streamlit process also returned HTTP 200, and Streamlit's app harness rendered the Search and
+Ask/Compare tabs without an application exception. These are functional checks, not performance or
+usability measurements.
+
+Ruff lint and formatting passed for 53 files, dependency consistency passed, and Git whitespace
+validation passed. The Streamlit page is a presentation client and shares none of the filter,
+ranking, workflow, or verification implementation. Phase 6 records no API latency, concurrency,
+real-model quality, user-experience, or deployment claim; those require controlled Phase 7 work.

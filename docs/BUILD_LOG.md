@@ -310,3 +310,41 @@ Status: fixed and validated locally on `phase/05-agentic-rag`; fixes not committ
 Validation: full suite 261 passed and two optional live integrations skipped; focused suite
 70 passed. Ruff lint and formatting passed for 43 files; dependency and whitespace checks passed.
 No commit, push, PR modification, merge, or Phase 6 work was performed for these fixes.
+
+## 2026-09-10 — Phase 6: FastAPI backend and Streamlit demonstration
+
+Status: implementation complete locally; commit and push not authorized.
+
+- Fast-forwarded local `main` to merged Phase 5 pull request #6 and created `phase/06-api-ui`.
+- Added separate Pydantic contracts and four FastAPI routes: health, direct retrieval, bounded agent
+  query, and complete product lookup.
+- Added a stable JSON error envelope for request validation, unknown products, invalid service
+  inputs, and unavailable configured components.
+- Added component-aware startup so `/health` and ready endpoints remain usable when PostgreSQL or a
+  real LLM provider is not configured.
+- Made API embedding startup offline-first after discovering that a cached model still attempted
+  slow metadata requests. The first download now requires explicit opt-in.
+- Added one Streamlit search/comparison page and a transport-only standard-library API client. The
+  UI imports no retrieval, storage, workflow, or evidence business logic.
+- Added offline API, client, service-assembly, validation, readiness, and error-path tests.
+- Added `docs/API_AND_UI.md` and updated the README, architecture, decisions, evaluation record,
+  environment template, and dependencies for the implemented boundary.
+
+Real local smoke validation loaded the 3,062-product catalogue, aligned BM25/semantic indexes, and
+cached pinned embedding model without network access. Hybrid search for `Samsung AMOLED` under
+₹30,000 returned three stored product IDs. PostgreSQL and the real LLM were not configured, and
+health correctly marked only product lookup and agent query unavailable; no live database or paid
+provider result is claimed.
+
+Validation:
+
+- `python -m pytest -q`: 278 passed; the optional live-LLM and live-database tests were skipped.
+- Focused API, client, service-assembly, and Streamlit suite: 16 passed.
+- Real local FastAPI `/health` and constrained `/search` smoke requests returned HTTP 200.
+- The headless Streamlit server returned HTTP 200; its app harness rendered both tabs without an
+  application exception.
+- Ruff lint and format checks passed for 53 files.
+- Dependency consistency and diff whitespace checks passed.
+
+Phase 6 implementation, tests, and documentation are complete locally. No commit, push, pull
+request, merge, Docker, broad evaluation, or Phase 7 work was performed.

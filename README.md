@@ -18,7 +18,7 @@ which every product claim can be traced to a product ID and source URL.
 
 This is an incremental portfolio project. The data foundation, BM25 and semantic retrieval,
 measured hybrid ranking, strict catalogue filters, PostgreSQL/pgvector storage, and bounded agent
-workflow are complete. The API and interface are deliberately being added in later phases.
+workflow are complete. A FastAPI boundary and a thin Streamlit demonstration are now implemented.
 
 ## Why this project is technically interesting
 
@@ -40,8 +40,8 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 through Phase 5 are implemented locally. Phase 4 is merged into `main`; Phase 5 PR #6
-is open. The three Phase 5 review fixes are validated locally and await commit and push.**
+**Phase 0 through Phase 5 are merged into `main`. Phase 6 is implemented and validated locally on
+its phase branch; it has not been committed or pushed.**
 
 What works today:
 
@@ -68,12 +68,16 @@ What works today:
 - Structured answer generation whose values and product/source citations must pass deterministic
   verification before rendering.
 - A configurable LLM interface, network-free mock, and optional OpenAI Responses API adapter.
+- Four validated FastAPI endpoints for health, retrieval, agent queries, and product details.
+- Component-aware readiness and stable validation, not-found, and unavailable-service errors.
+- One Streamlit page that calls the API and exposes results, constraints, grounded answers,
+  citations, and workflow evidence.
 - Synthetic automated tests that do not require a paid API or network access.
 
 Not implemented yet:
 
-- FastAPI endpoints or Streamlit interface.
 - Agent-quality metrics and broad end-to-end evaluation.
+- Docker Compose, authentication, rate limiting, and production deployment controls.
 
 This distinction is intentional: the repository only claims behavior that has actually been built
 and tested.
@@ -82,8 +86,8 @@ and tested.
 
 ```mermaid
 flowchart TD
-    U[User request] --> UI[Streamlit interface - planned Phase 6]
-    UI --> API[FastAPI backend - planned Phase 6]
+    U[User request] --> UI[Streamlit demonstration]
+    UI --> API[FastAPI backend]
     API --> G[Bounded LangGraph workflow]
     G --> Q[Understand request and extract constraints]
     Q --> S[Catalogue Search Tool]
@@ -205,9 +209,9 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 5 review-fix run produced **261 passing tests and two skipped integration tests**. The
+The latest full Phase 6 run produced **278 passing tests and two skipped integration tests**. The
 skips are expected when the disposable PostgreSQL URL and explicit live-LLM opt-in are unset. This
-is an engineering result, not a search- or agent-quality score.
+is an engineering result, not a search-, agent-quality-, or latency score.
 
 ### Build and search the BM25 baseline
 
@@ -224,8 +228,8 @@ After generating the local catalogue, build the ignored retrieval index:
   --limit 10
 ```
 
-BM25 searches names and stored specification text. It does not enforce numeric or categorical
-shopping constraints; that remains Phase 3 work. See the
+The direct BM25 command searches names and stored specification text without numeric or categorical
+shopping constraints. The hybrid retriever and API apply those filters separately. See the
 [Phase 2 retrieval report](docs/BM25_RETRIEVAL.md) for design, evaluation conditions, and limits.
 
 ### Build and search the semantic and hybrid indexes
@@ -296,6 +300,28 @@ available only with a local key, explicit model, and `SEARCHRANK_RUN_LLM_INTEGRA
 [Phase 5 agentic RAG report](docs/AGENTIC_RAG.md) for the routes, tool contracts, safeguards, and
 setup boundary.
 
+### Run the API and Streamlit demonstration
+
+The API loads the local catalogue and retrieval indexes, uses PostgreSQL for complete product
+records, and enables agent queries only when a real LLM provider is configured. It remains
+inspectable through `/health` when one of those components is unavailable. After completing the
+earlier setup steps, start the backend and UI in separate terminals:
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn searchrank_ai.api:app --reload
+```
+
+```powershell
+$env:SEARCHRANK_API_URL = "http://127.0.0.1:8000"
+.venv\Scripts\python.exe -m streamlit run src\searchrank_ai\streamlit_app.py
+```
+
+Open `http://127.0.0.1:8000/docs` for the four-endpoint OpenAPI interface. The Streamlit URL is
+printed by Streamlit when it starts. API startup defaults to cached model files only; set
+`SEARCHRANK_EMBEDDING_LOCAL_ONLY=0` only for an intentional first-time model download. See the
+[Phase 6 API and UI guide](docs/API_AND_UI.md) for request contracts, readiness behavior, and
+limitations.
+
 ## Repository structure
 
 ```text
@@ -313,6 +339,11 @@ SearchRank-AI/
 │   ├── evidence_policy.py     # fixed field labels and comparison field/direction rules
 │   ├── llm.py                 # configurable mock and optional OpenAI providers
 │   ├── workflow.py            # bounded LangGraph routes and response rendering
+│   ├── api_models.py          # validated public request and response contracts
+│   ├── services.py            # component-aware runtime assembly
+│   ├── api.py                 # four FastAPI endpoints and error mapping
+│   ├── api_client.py          # transport-only JSON client for the UI
+│   ├── streamlit_app.py       # one-page search and comparison demonstration
 │   ├── data_audit.py          # retained historical laptop audit
 │   └── phone_audit.py         # retained rejected Amazon-phone audit
 ├── tests/                     # synthetic unit and reproducibility tests
@@ -338,8 +369,8 @@ part of the engineering work, not active laptop scope.
 | 2 | BM25 keyword retrieval baseline | Complete |
 | 3 | Semantic retrieval, hybrid ranking, and strict constraints | Complete |
 | 4 | PostgreSQL and pgvector persistence | Complete and merged |
-| 5 | Agentic RAG workflow and evidence tools | Complete locally |
-| 6 | FastAPI backend and Streamlit demonstration | Not started |
+| 5 | Agentic RAG workflow and evidence tools | Complete and merged |
+| 6 | FastAPI backend and Streamlit demonstration | Complete locally |
 | 7 | Evaluation, hardening, and Docker Compose | Not started |
 | 8 | Final documentation and portfolio release | Not started |
 
@@ -369,6 +400,8 @@ history believable and prevents later components from hiding weaknesses in the f
   For caution, raw data, processed data, and generated audit artifacts are not committed.
 - The 20-case retrieval benchmark is still too small for broad search-quality claims. Phase 5
   validates workflow behavior with mocks; broad real-model agent evaluation remains Phase 7 work.
+- The API and Streamlit page are a local demonstration without authentication, rate limiting,
+  connection pooling, deployment TLS, or measured concurrency and latency.
 
 ## Documentation
 
@@ -378,6 +411,7 @@ history believable and prevents later components from hiding weaknesses in the f
 - [Semantic and hybrid retrieval](docs/HYBRID_RETRIEVAL.md)
 - [PostgreSQL and pgvector storage](docs/STORAGE.md)
 - [Agentic RAG workflow and evidence tools](docs/AGENTIC_RAG.md)
+- [FastAPI backend and Streamlit demonstration](docs/API_AND_UI.md)
 - [Decision log](docs/DECISIONS.md)
 - [Build log](docs/BUILD_LOG.md)
 - [Evaluation record](docs/EVALUATION.md)

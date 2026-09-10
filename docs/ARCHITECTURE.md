@@ -121,7 +121,8 @@ measurable rather than being silently replaced.
 
 ```text
 User
-  -> FastAPI backend (planned for Phase 6)
+  -> Streamlit demonstration
+  -> FastAPI backend
   -> one bounded LangGraph workflow
        -> request analysis and structured constraints
        -> explicit search, comparison, clarification, conflict, or unsupported route
@@ -130,7 +131,7 @@ User
        -> evidence verification tool
        -> at most one query reformulation and four total tool calls
   -> deterministic rendering of verified facts, conclusions, and unavailable information
-  -> Streamlit demonstration (planned for Phase 6)
+  -> validated JSON response and source links
 
 Storage: PostgreSQL + pgvector
 ```
@@ -162,9 +163,25 @@ the draft cannot independently change what `lowest price` or another directional
 - **Storage:** product records and embeddings with traceable identifiers.
 - **Workflow:** state and conditional routes with explicit retry/tool-call limits.
 - **Providers:** configurable LLM interface plus a deterministic test double.
-- **API:** planned Phase 6 validation and orchestration without presentation logic.
-- **UI:** a planned Phase 6 single demonstration page that calls the API.
+- **API:** Pydantic validation, component readiness, HTTP error mapping, and service delegation.
+- **UI:** a single Streamlit page that communicates only through the JSON API.
 - **Evaluation:** reviewed scenarios, reproducible metrics, and documented failure cases.
 
-Data, retrieval, storage, workflow, and provider boundaries are implemented through Phase 5. The API,
-UI, containerization, and broad evaluation remain later-phase work.
+Data, retrieval, storage, workflow, provider, API, and UI boundaries are implemented through Phase
+6. Containerization and broad evaluation remain later-phase work.
+
+## API and interface boundary
+
+`api_models.py` owns the public Pydantic contracts. `api.py` validates and maps HTTP concerns, then
+delegates blocking calls to injected application services through a thread pool. It does not
+implement ranking, filters, workflow routes, database queries, or evidence rules.
+
+`services.py` assembles the production dependencies once during application startup. Its readiness
+is component-aware: local retrieval may be available while PostgreSQL or the real LLM provider is
+not. `/health` reports that distinction, and affected routes return `503` with safe setup messages.
+The embedding adapter defaults to local cached files in the API to prevent unexpected startup
+network calls.
+
+`streamlit_app.py` sends JSON through the transport-only `api_client.py`. It renders API results and
+workflow audit fields but has no direct access to retrieval or agent objects. This keeps the UI
+replaceable and prevents presentation code from silently relaxing strict constraints.
