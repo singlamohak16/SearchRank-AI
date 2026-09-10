@@ -27,6 +27,7 @@ from searchrank_ai.retrieval import SearchConstraints
 MAX_REFORMULATIONS = 1
 MAX_TOOL_CALLS = 4
 DEFAULT_RESULT_LIMIT = 5
+_MARKDOWN_SPECIALS = frozenset("\\`*_{}[]<>()!")
 
 
 def _path(state: WorkflowState, node: str) -> tuple[str, ...]:
@@ -47,6 +48,14 @@ def _format_value(field: str, value: object) -> str:
     return str(value)
 
 
+def _markdown_text(value: str) -> str:
+    """Render untrusted catalogue labels as text inside controlled Markdown."""
+    one_line = value.replace("\r", " ").replace("\n", " ")
+    return "".join(
+        f"\\{character}" if character in _MARKDOWN_SPECIALS else character for character in one_line
+    )
+
+
 def _render_verified_answer(state: WorkflowState) -> str:
     report = state["verification"]
     products = {product.product_id: product for product in state["product_evidence"]}
@@ -55,24 +64,27 @@ def _render_verified_answer(state: WorkflowState) -> str:
         lines = ["Facts explicitly present in the catalogue:"]
         for claim in report.verified_facts:
             product = products[claim.product_id]
+            product_name = _markdown_text(product.product_name)
+            product_id = _markdown_text(product.product_id)
             label = FIELD_LABELS[claim.field]
             value = _format_value(claim.field, getattr(product, claim.field))
             lines.append(
-                f"- {product.product_name}: {label} is {value}. "
-                f"[{product.product_id}]({product.source_url})"
+                f"- {product_name}: {label} is {value}. [{product_id}]({product.source_url})"
             )
         sections.append("\n".join(lines))
     if report.verified_comparisons:
         lines = ["Conclusions derived from those facts:"]
         for claim in report.verified_comparisons:
             preferred = products[claim.preferred_product_id]
+            preferred_name = _markdown_text(preferred.product_name)
             value = _format_value(claim.field, getattr(preferred, claim.field))
             label = FIELD_LABELS[claim.field]
             citations = ", ".join(
-                f"[{citation.product_id}]({citation.source_url})" for citation in claim.citations
+                f"[{_markdown_text(citation.product_id)}]({citation.source_url})"
+                for citation in claim.citations
             )
             lines.append(
-                f"- For {claim.criterion}, {preferred.product_name} has the {claim.preference} "
+                f"- For {claim.criterion}, {preferred_name} has the {claim.preference} "
                 f"{label} ({value}) among the compared products. Evidence: {citations}"
             )
         sections.append("\n".join(lines))
@@ -82,9 +94,11 @@ def _render_verified_answer(state: WorkflowState) -> str:
         labels = {**FIELD_LABELS, **UNCOLLECTED_FIELD_LABELS}
         for item in unavailable:
             product = products[item.product_id]
+            product_name = _markdown_text(product.product_name)
+            product_id = _markdown_text(product.product_id)
             lines.append(
-                f"- {product.product_name}: {labels[item.field]} is unavailable in this catalogue. "
-                f"[{product.product_id}]({product.source_url})"
+                f"- {product_name}: {labels[item.field]} is unavailable in this catalogue. "
+                f"[{product_id}]({product.source_url})"
             )
         sections.append("\n".join(lines))
     return "\n\n".join(sections)
