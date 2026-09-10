@@ -152,8 +152,8 @@ The live LLM test was not run during Phase 5. No provider-quality or latency res
 
 ## Limitations
 
-- Phase 5 exposes a Python service boundary, not a CLI, API, or interface; Phase 6 will wire it into
-  FastAPI and Streamlit.
+- Phase 5 itself remains a Python service boundary. Phase 6 now wraps it with FastAPI and a thin
+  Streamlit client without changing the graph or evidence rules.
 - Only stored numerical fields support deterministic higher/lower conclusions. Processor and
   camera text can be cited as facts but are not automatically ranked as “better.”
 - The mock tests establish control-flow and evidence guarantees, not real-model classification or

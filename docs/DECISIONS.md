@@ -283,3 +283,39 @@ evaluation choices remain deliberately open until their relevant phases.
   the checks inspectable and testable without another model call.
 - **Boundary:** These tests exercise deterministic enforcement with mocks. They do not prove that
   a real provider always interprets the user's natural-language constraints or criteria correctly.
+
+## D-019 — Keep FastAPI thin and expose explicit public contracts
+
+- **Date:** 2026-09-10
+- **Status:** Accepted; Phase 6 complete locally
+- **Decision:** Define separate Pydantic request/response models for health, retrieval, agent
+  outcomes, and complete products. FastAPI validates HTTP input, delegates to injected Phase 3–5
+  services in a thread pool, and maps expected failures to one error envelope. It does not copy
+  ranking, constraints, storage, workflow, or evidence logic.
+- **Reason:** A small transport boundary is easy to test and explain. Injection keeps normal tests
+  independent of the embedding model, PostgreSQL, and paid APIs, while generated OpenAPI
+  documentation makes the four supported endpoints inspectable.
+- **Alternatives:** Returning internal dataclasses would couple the API to implementation details;
+  duplicating filters in endpoints would create competing correctness rules; a larger web framework
+  or microservice split would add complexity without a portfolio-scale need.
+- **Boundary:** Authentication, rate limiting, CORS deployment policy, pagination, and production
+  observability remain out of scope. API responses expose audit summaries, not the complete graph
+  state or secrets.
+
+## D-020 — Use component-aware startup and a transport-only Streamlit client
+
+- **Date:** 2026-09-10
+- **Status:** Accepted; Phase 6 complete locally
+- **Decision:** Load configured services once at API startup but preserve `/health` and independently
+  ready endpoints when another component fails. Default API embedding startup to cached files only.
+  Keep Streamlit as one page that calls HTTP through a standard-library JSON client and renders
+  results, source links, constraints, and workflow evidence.
+- **Reason:** Missing PostgreSQL or LLM configuration should not make local retrieval impossible to
+  diagnose. Offline-first model loading avoids long hidden network retries. An HTTP-only UI proves
+  the public boundary and cannot bypass deterministic backend checks.
+- **Alternative:** Failing the entire process is simpler but gives poorer setup feedback. Importing
+  Python services directly into Streamlit is convenient but duplicates the composition boundary
+  and makes it easier for UI code to diverge from API behavior.
+- **Limitation:** One shared database connection and synchronous services are acceptable for a local
+  demonstration, not a concurrency or deployment claim. Phase 7 will measure before adding
+  infrastructure.

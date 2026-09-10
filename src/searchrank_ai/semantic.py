@@ -46,6 +46,7 @@ class SentenceTransformerEncoder:
         *,
         revision: str = DEFAULT_MODEL_REVISION,
         device: str | None = None,
+        local_files_only: bool = False,
     ) -> None:
         if not model_name.strip() or not revision.strip():
             raise ValueError("model name and revision must be non-empty")
@@ -53,7 +54,12 @@ class SentenceTransformerEncoder:
 
         self.model_name = model_name
         self.revision = revision
-        self._model = SentenceTransformer(model_name, revision=revision, device=device)
+        self._model = SentenceTransformer(
+            model_name,
+            revision=revision,
+            device=device,
+            local_files_only=local_files_only,
+        )
 
     @property
     def identifier(self) -> str:
