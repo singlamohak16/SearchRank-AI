@@ -161,3 +161,20 @@ Ruff lint and formatting passed for 53 files, dependency consistency passed, and
 validation passed. The Streamlit page is a presentation client and shares none of the filter,
 ranking, workflow, or verification implementation. Phase 6 records no API latency, concurrency,
 real-model quality, user-experience, or deployment claim; those require controlled Phase 7 work.
+
+## 2026-09-11 — Phase 6 pull request review regression checkpoint
+
+Review of pull request #7 found three uncovered boundary failures: Markdown-like catalogue names
+could become active presentation content, JSON booleans were accepted as numeric search values,
+and a transport timeout could escape the Streamlit client's safe error path. The README also
+reported the pre-commit state after the phase branch and pull request already existed.
+
+After the fixes, the focused API, client, service-assembly, and Streamlit suite produced **18
+passed**. The full repository suite produced **280 passed and two skipped optional integrations**.
+The new regression cases prove that catalogue labels are reduced to escaped single-line Markdown,
+all six numeric request fields reject booleans with the stable `422` envelope, and connection
+timeouts surface as `APIClientError`.
+
+Ruff lint and formatting passed for 53 files, dependency consistency passed, and Git whitespace
+validation passed. The optional live PostgreSQL and LLM integrations remained disabled; no new
+retrieval-quality, real-model, latency, concurrency, deployment, or usability claim was made.

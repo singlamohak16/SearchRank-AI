@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
+import string
 
 import streamlit as st
 
 from searchrank_ai.api_client import APIClient, APIClientError
+
+_MARKDOWN_SPECIALS = frozenset(string.punctuation)
 
 
 @st.cache_resource
@@ -16,6 +19,14 @@ def _client() -> APIClient:
 
 def _brands(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _markdown_text(value: str) -> str:
+    """Render untrusted catalogue labels as one line of inert Markdown text."""
+    one_line = value.replace("\r", " ").replace("\n", " ")
+    return "".join(
+        f"\\{character}" if character in _MARKDOWN_SPECIALS else character for character in one_line
+    )
 
 
 def _optional_number(label: str, *, default: float, maximum: float | None = None) -> float | None:
@@ -84,7 +95,7 @@ def _search_tab(client: APIClient) -> None:
     st.json(response["constraints"], expanded=False)
     for item in results:
         with st.container(border=True):
-            st.markdown(f"### {item['rank']}. {item['product_name']}")
+            st.markdown(f"### {item['rank']}. {_markdown_text(item['product_name'])}")
             st.write(
                 f"{item['brand']} · ₹{item['price_inr']:,} · "
                 f"{item['ram_gb']:g} GB RAM · {item['storage_gb']:g} GB storage"

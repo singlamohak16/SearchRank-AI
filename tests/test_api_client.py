@@ -73,6 +73,12 @@ def test_client_surfaces_safe_api_and_connection_errors() -> None:
     with pytest.raises(APIClientError, match="Could not connect"):
         APIClient("https://example.test", opener=connection_failure).health()
 
+    def timeout_failure(_request, *, timeout):
+        raise TimeoutError("timed out")
+
+    with pytest.raises(APIClientError, match="Could not connect"):
+        APIClient("https://example.test", opener=timeout_failure).health()
+
 
 @pytest.mark.parametrize("url", ["", "localhost:8000", "file:///tmp/api"])
 def test_client_rejects_non_http_urls(url: str) -> None:

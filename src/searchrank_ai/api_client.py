@@ -56,7 +56,7 @@ class APIClient:
                 value = None
             message = self._error_message(value, f"API request failed with status {error.code}.")
             raise APIClientError(message) from error
-        except URLError as error:
+        except (URLError, TimeoutError) as error:
             raise APIClientError("Could not connect to the SearchRank-AI API.") from error
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise APIClientError("The API returned an invalid JSON response.") from error

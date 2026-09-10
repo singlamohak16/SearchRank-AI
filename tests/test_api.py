@@ -211,6 +211,24 @@ def test_invalid_requests_use_stable_error_shape() -> None:
         assert response.json()["error"]["details"]
 
 
+def test_search_rejects_boolean_numeric_fields() -> None:
+    client, _, _ = _client()
+    invalid_payloads = (
+        {"query": "phone", "alpha": False},
+        {"query": "phone", "limit": True},
+        {"query": "phone", "constraints": {"max_price_inr": True}},
+        {"query": "phone", "constraints": {"min_ram_gb": False}},
+        {"query": "phone", "constraints": {"min_storage_gb": True}},
+        {"query": "phone", "constraints": {"min_rating_5": False}},
+    )
+
+    with client:
+        responses = [client.post("/search", json=payload) for payload in invalid_payloads]
+
+    assert all(response.status_code == 422 for response in responses)
+    assert all(response.json()["error"]["code"] == "validation_error" for response in responses)
+
+
 def test_unavailable_components_keep_health_but_return_503() -> None:
     services = AppServices(
         errors={

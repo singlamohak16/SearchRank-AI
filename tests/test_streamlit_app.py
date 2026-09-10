@@ -4,6 +4,19 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from searchrank_ai.streamlit_app import _markdown_text
+
+
+def test_catalogue_labels_are_escaped_before_markdown_rendering() -> None:
+    value = "Phone [bad](https://evil.example)\n![pixel](https://evil.example/pixel.png)"
+
+    escaped = _markdown_text(value)
+
+    assert "\n" not in escaped
+    assert "[bad](" not in escaped
+    assert "![pixel](" not in escaped
+    assert "\\[bad\\]\\(https\\:\\/\\/evil\\.example\\)" in escaped
+
 
 def test_streamlit_page_renders_search_and_query_tabs(monkeypatch) -> None:
     monkeypatch.setenv("SEARCHRANK_API_URL", "http://127.0.0.1:1")

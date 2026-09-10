@@ -348,3 +348,25 @@ Validation:
 
 Phase 6 implementation, tests, and documentation are complete locally. No commit, push, pull
 request, merge, Docker, broad evaluation, or Phase 7 work was performed.
+
+## 2026-09-11 — Phase 6 pull request #7 review fixes
+
+Status: fixed and validated locally on `phase/06-api-ui`; review fixes are not committed or pushed.
+
+- Escaped untrusted catalogue product names before Streamlit Markdown rendering so names cannot
+  create links, images, or multiline content in result headings.
+- Made every numeric search request field strict so JSON booleans are rejected instead of being
+  coerced to zero or one.
+- Converted transport timeouts into the same safe API-client error used for connection failures.
+- Updated the README's current phase and pull-request status.
+- Added regression coverage for Markdown-like catalogue names, Boolean numeric values, and timeout
+  failures.
+
+Validation:
+
+- `python -m pytest -q`: 280 passed; the optional live-LLM and live-database tests were skipped.
+- Focused API, client, service-assembly, and Streamlit suite: 18 passed.
+- Ruff lint and format checks passed for 53 files.
+- Dependency consistency and diff whitespace checks passed.
+
+No live database, paid provider, deployment, merge, or Phase 7 work was performed for these fixes.

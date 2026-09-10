@@ -6,7 +6,15 @@ from dataclasses import asdict
 from datetime import date
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictFloat,
+    StrictInt,
+    field_validator,
+    model_validator,
+)
 
 from searchrank_ai.agent_models import AgentOutcome
 from searchrank_ai.retrieval import RetrievalResult, SearchConstraints
@@ -22,12 +30,12 @@ class APIModel(BaseModel):
 
 
 class SearchConstraintsPayload(APIModel):
-    max_price_inr: float | None = Field(default=None, gt=0)
-    min_ram_gb: float | None = Field(default=None, ge=0)
+    max_price_inr: StrictFloat | None = Field(default=None, gt=0)
+    min_ram_gb: StrictFloat | None = Field(default=None, ge=0)
     included_brands: list[str] = Field(default_factory=list, max_length=20)
     excluded_brands: list[str] = Field(default_factory=list, max_length=20)
-    min_rating_5: float | None = Field(default=None, ge=0, le=5)
-    min_storage_gb: float | None = Field(default=None, ge=0)
+    min_rating_5: StrictFloat | None = Field(default=None, ge=0, le=5)
+    min_storage_gb: StrictFloat | None = Field(default=None, ge=0)
 
     @field_validator("included_brands", "excluded_brands")
     @classmethod
@@ -53,8 +61,8 @@ class SearchConstraintsPayload(APIModel):
 class SearchRequest(APIModel):
     query: NonEmptyText
     mode: Literal["bm25", "semantic", "hybrid"] = "hybrid"
-    alpha: float = Field(default=0.25, ge=0, le=1)
-    limit: int = Field(default=10, ge=1, le=50)
+    alpha: StrictFloat = Field(default=0.25, ge=0, le=1)
+    limit: StrictInt = Field(default=10, ge=1, le=50)
     constraints: SearchConstraintsPayload = Field(default_factory=SearchConstraintsPayload)
 
     @field_validator("query")

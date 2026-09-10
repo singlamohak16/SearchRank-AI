@@ -40,8 +40,8 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 through Phase 5 are merged into `main`. Phase 6 is implemented and validated locally on
-its phase branch; it has not been committed or pushed.**
+**Phase 0 through Phase 5 are merged into `main`. Phase 6 is implemented, validated, committed, and
+pushed on `phase/06-api-ui`; pull request #7 is open and its review fixes await commit and push.**
 
 What works today:
 
@@ -209,7 +209,8 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 6 run produced **278 passing tests and two skipped integration tests**. The
+The latest full Phase 6 review-fix run produced **280 passing tests and two skipped integration
+tests**. The
 skips are expected when the disposable PostgreSQL URL and explicit live-LLM opt-in are unset. This
 is an engineering result, not a search-, agent-quality-, or latency score.
 
@@ -370,7 +371,7 @@ part of the engineering work, not active laptop scope.
 | 3 | Semantic retrieval, hybrid ranking, and strict constraints | Complete |
 | 4 | PostgreSQL and pgvector persistence | Complete and merged |
 | 5 | Agentic RAG workflow and evidence tools | Complete and merged |
-| 6 | FastAPI backend and Streamlit demonstration | Complete locally |
+| 6 | FastAPI backend and Streamlit demonstration | Complete; PR #7 open |
 | 7 | Evaluation, hardening, and Docker Compose | Not started |
 | 8 | Final documentation and portfolio release | Not started |
 
