@@ -40,8 +40,9 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 through Phase 5 are merged into `main`. Phase 6 is implemented, validated, committed, and
-pushed on `phase/06-api-ui`; pull request #7 is open and its review fixes await commit and push.**
+**Phase 0 through Phase 6 are merged into `main`. Phase 7 is complete locally on
+`phase/07-evaluation`, including live Docker builds, ingestion, API/UI checks, and evaluation.
+GitHub publication and pull request are pending.**
 
 What works today:
 
@@ -72,12 +73,18 @@ What works today:
 - Component-aware readiness and stable validation, not-found, and unavailable-service errors.
 - One Streamlit page that calls the API and exposes results, constraints, grounded answers,
   citations, and workflow evidence.
+- A 36-scenario evaluation portfolio: 20 catalogue-grounded retrieval cases and 16 separately
+  reported scripted-agent cases covering routes, constraints, citations, and adversarial failures.
+- Reproducible agent metrics, alpha ablation, fresh index timing, and warmed local search-API
+  latency measurement with explicit environment and denominator records.
+- A non-root Docker image and Compose topology for PostgreSQL/pgvector, FastAPI, Streamlit, and
+  explicit catalogue ingestion.
 - Synthetic automated tests that do not require a paid API or network access.
 
-Not implemented yet:
+Not implemented or verified yet:
 
-- Agent-quality metrics and broad end-to-end evaluation.
-- Docker Compose, authentication, rate limiting, and production deployment controls.
+- Real-provider agent-quality evaluation, authentication, rate limiting, concurrency testing, and
+  production deployment controls.
 
 This distinction is intentional: the repository only claims behavior that has actually been built
 and tested.
@@ -209,10 +216,11 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 6 review-fix run produced **280 passing tests and two skipped integration
-tests**. The
-skips are expected when the disposable PostgreSQL URL and explicit live-LLM opt-in are unset. This
-is an engineering result, not a search-, agent-quality-, or latency score.
+The latest full Phase 7 run produced **305 passing tests and two skipped integration tests**, with
+Docker configuration and live API/UI tests enabled. The host skipped the direct PostgreSQL test
+and live-LLM opt-in. A separate Linux container run passed **25 tests**, including the real
+PostgreSQL/pgvector integration. Ordinary offline runs also skip the four opt-in HTTP checks.
+The evaluation report records the exact conditions and reproduction commands.
 
 ### Build and search the BM25 baseline
 
@@ -323,6 +331,59 @@ printed by Streamlit when it starts. API startup defaults to cached model files 
 [Phase 6 API and UI guide](docs/API_AND_UI.md) for request contracts, readiness behavior, and
 limitations.
 
+### Run the Phase 7 evaluation
+
+The reviewed portfolio contains 20 catalogue retrieval cases and 16 scripted-agent workflow cases.
+They are kept separate because only the retrieval set uses the adopted catalogue, while the agent
+set measures deterministic control flow around mocked model decisions.
+
+```powershell
+.venv\Scripts\python.exe -X utf8 -m searchrank_ai.retrieval evaluate `
+  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
+  --bm25-index artifacts\bm25\phase2-index.json `
+  --semantic-index artifacts\semantic\phase3-index.npz `
+  --cases evaluation\retrieval_v1.json --alphas 0.25 0.50 0.75 `
+  --local-files-only --output artifacts\evaluation\retrieval.json
+
+.venv\Scripts\python.exe -X utf8 -m searchrank_ai.evaluation agent `
+  --cases evaluation\agent_scenarios_v1.json `
+  --output artifacts\evaluation\agent.json
+```
+
+The measured results, metric definitions, environment, timing conditions, and limitations are in
+the [Phase 7 evaluation report](docs/PHASE_7_EVALUATION.md).
+
+### Run with Docker Compose
+
+The stack was built and verified on 2026-09-11 with Docker Desktop/WSL2. Start Docker Desktop,
+then run these commands after generating the local catalogue and retrieval artifacts:
+
+```powershell
+docker compose up -d database
+docker compose --profile setup run --rm --build ingest
+docker compose up --build -d api ui
+docker compose ps
+```
+
+The API is exposed on `http://127.0.0.1:8000` and Streamlit on `http://127.0.0.1:8501`. The first
+container start may download the pinned embedding model into a named cache volume. Set real LLM
+credentials only through the environment; the default mock keeps interactive `/query` unavailable.
+The API health response is therefore `degraded` with `search` and `products` ready and `query`
+disabled. Compose requires search and product storage to be ready before starting the UI.
+The image uses CPU-only PyTorch, and published ports bind only to this computer's loopback address.
+
+To repeat the four live HTTP checks against the running stack:
+
+```powershell
+$env:SEARCHRANK_TEST_API_URL = "http://127.0.0.1:8000"
+$env:SEARCHRANK_TEST_UI_URL = "http://127.0.0.1:8501"
+python -m pytest -q tests/test_container_integration.py
+```
+
+`docker compose down` stops and removes the project containers and network while preserving the
+database and model-cache volumes. First-time builds require internet access; image tags and Python
+dependency ranges are not a complete version lock.
+
 ## Repository structure
 
 ```text
@@ -345,15 +406,18 @@ SearchRank-AI/
 │   ├── api.py                 # four FastAPI endpoints and error mapping
 │   ├── api_client.py          # transport-only JSON client for the UI
 │   ├── streamlit_app.py       # one-page search and comparison demonstration
+│   ├── evaluation.py          # agent metrics and local API timing harness
 │   ├── data_audit.py          # retained historical laptop audit
 │   └── phone_audit.py         # retained rejected Amazon-phone audit
 ├── tests/                     # synthetic unit and reproducibility tests
-├── evaluation/                # reviewed retrieval queries and relevance judgments
+├── evaluation/                # reviewed retrieval and scripted-agent scenarios
 ├── docs/                      # architecture, decisions, audits, and evaluation notes
 ├── data/                      # local raw/processed data; ignored by Git
 ├── artifacts/                 # local audit/index outputs; ignored by Git
 ├── .env.example
 ├── AGENTS.md
+├── Dockerfile
+├── compose.yaml
 └── pyproject.toml
 ```
 
@@ -371,8 +435,8 @@ part of the engineering work, not active laptop scope.
 | 3 | Semantic retrieval, hybrid ranking, and strict constraints | Complete |
 | 4 | PostgreSQL and pgvector persistence | Complete and merged |
 | 5 | Agentic RAG workflow and evidence tools | Complete and merged |
-| 6 | FastAPI backend and Streamlit demonstration | Complete; PR #7 open |
-| 7 | Evaluation, hardening, and Docker Compose | Not started |
+| 6 | FastAPI backend and Streamlit demonstration | Complete and merged |
+| 7 | Evaluation, hardening, and Docker Compose | Complete locally; push/PR pending |
 | 8 | Final documentation and portfolio release | Not started |
 
 Each phase is developed, tested, documented, reviewed, and merged separately. This keeps the Git
@@ -395,14 +459,18 @@ history believable and prevents later components from hiding weaknesses in the f
 - Some processor, rating, display, release-date, charging, and image values remain unavailable.
 - Product variants remain separate when the source provides distinct names and URLs.
 - Some release and specification claims have not been verified against manufacturers.
-- PostgreSQL is not bundled and Docker is intentionally deferred to Phase 7. The live pgvector
-  integration test therefore requires an explicitly configured disposable test database.
+- The direct PostgreSQL integration test needs a disposable test database; it passed inside Docker.
+  PostgreSQL is available only on the internal Compose network by default.
 - Kaggle lists the dataset as CC0, while the publisher also states learning/non-commercial use.
   For caution, raw data, processed data, and generated audit artifacts are not committed.
-- The 20-case retrieval benchmark is still too small for broad search-quality claims. Phase 5
-  validates workflow behavior with mocks; broad real-model agent evaluation remains Phase 7 work.
+- The 20-case retrieval benchmark is still too small for broad search-quality claims. The separate
+  16-case agent benchmark uses scripted model decisions and synthetic products, so it validates
+  deterministic workflow behavior rather than real-model interpretation quality.
 - The API and Streamlit page are a local demonstration without authentication, rate limiting,
-  connection pooling, deployment TLS, or measured concurrency and latency.
+  connection pooling, deployment TLS, measured concurrency, or real-network latency. Only warmed
+  in-process search latency has been measured.
+- Docker startup, repeated ingestion, all search modes, and API/UI health are verified locally.
+  Interactive `/query` needs a real LLM provider; no live-provider quality result is claimed.
 
 ## Documentation
 
@@ -413,6 +481,7 @@ history believable and prevents later components from hiding weaknesses in the f
 - [PostgreSQL and pgvector storage](docs/STORAGE.md)
 - [Agentic RAG workflow and evidence tools](docs/AGENTIC_RAG.md)
 - [FastAPI backend and Streamlit demonstration](docs/API_AND_UI.md)
+- [Phase 7 evaluation, hardening, and containers](docs/PHASE_7_EVALUATION.md)
 - [Decision log](docs/DECISIONS.md)
 - [Build log](docs/BUILD_LOG.md)
 - [Evaluation record](docs/EVALUATION.md)

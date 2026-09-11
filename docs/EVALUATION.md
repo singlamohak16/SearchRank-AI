@@ -178,3 +178,31 @@ timeouts surface as `APIClientError`.
 Ruff lint and formatting passed for 53 files, dependency consistency passed, and Git whitespace
 validation passed. The optional live PostgreSQL and LLM integrations remained disabled; no new
 retrieval-quality, real-model, latency, concurrency, deployment, or usability claim was made.
+
+## 2026-09-11 — Phase 7 reviewed evaluation and engineering measurements
+
+Phase 7 combines the existing 20 catalogue-grounded retrieval cases with 16 reviewed scripted-agent
+cases, for 36 scenarios total. The retrieval rerun exactly reproduced the Phase 3 metrics and kept
+`alpha = 0.25` as the best hybrid candidate by NDCG@10. The agent run matched all 16 expected
+statuses, routes, tool sequences, and retry counts; its average was 2.1875 tool calls. Constraint,
+clarification, refusal, conflict, and valid-citation rates were 1.000000, while the unsupported-claim
+rate was 0.000000 under the scripted conditions.
+
+The agent provider was a deterministic mock and the four products were synthetic. Those results
+measure workflow enforcement around supplied model decisions, not live-model interpretation or
+general safety performance. Exact metric definitions, denominators, failure cases, commands, and
+retrieval values are recorded in [the Phase 7 report](PHASE_7_EVALUATION.md).
+
+On the recorded Lenovo 82XV/Intel Core i7-13620H system with Python 3.12.14, a fresh BM25 build took
+0.2327 seconds and a cached-model CPU semantic build took 56.1828 seconds. Both new artifacts were
+byte-identical to their Phase 2/3 counterparts by SHA-256. A warmed, sequential, in-process FastAPI
+TestClient run over 50 real hybrid `/search` requests measured 12.9782 ms median and 16.7325 ms p95.
+It excluded a network socket, PostgreSQL, an LLM, concurrency, and cold model loading.
+
+After Docker Desktop/WSL2 installation and a restart, live builds and all three services started
+successfully on 2026-09-11. Two ingestion runs each loaded 3,062 products with 384-dimensional
+embeddings and the same catalogue hash. The full host suite passed 305 tests with two optional
+integration skips, including four live API/UI checks. A separate container run passed 25 tests,
+including the real PostgreSQL/pgvector integration. Default `/query` correctly returned 503 because
+no real LLM provider was configured. These checks establish local service operation, not deployed
+latency or real-provider answer quality.
