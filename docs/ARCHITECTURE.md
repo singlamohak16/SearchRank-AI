@@ -168,7 +168,8 @@ the draft cannot independently change what `lowest price` or another directional
 - **Evaluation:** reviewed scenarios, reproducible metrics, and documented failure cases.
 
 Data, retrieval, storage, workflow, provider, API, and UI boundaries are implemented through Phase
-6. Containerization and broad evaluation remain later-phase work.
+6. Phase 7 adds a reviewed evaluation runner and container wiring without changing those ownership
+boundaries.
 
 ## API and interface boundary
 
@@ -185,3 +186,29 @@ network calls.
 `streamlit_app.py` sends JSON through the transport-only `api_client.py`. It renders API results and
 workflow audit fields but has no direct access to retrieval or agent objects. This keeps the UI
 replaceable and prevents presentation code from silently relaxing strict constraints.
+
+## Evaluation and container boundary
+
+```text
+20 catalogue retrieval cases -> BM25 / semantic / hybrid metrics + alpha ablation
+16 scripted agent cases       -> real graph and tools -> route / safety / citation metrics
+20 reviewed queries           -> warmed in-process /search latency summary
+
+read-only catalogue + indexes -> API container -> Streamlit container
+                                  |
+                                  +-> PostgreSQL 16 + pgvector
+                                  +-> explicit one-shot ingestion profile
+```
+
+`evaluation.py` owns scenario loading, the scripted workflow harness, denominator-aware metrics,
+and warmed API timing. It does not change production ranking or agent behavior. Generated reports
+remain ignored, while reviewed inputs are versioned.
+
+The Docker image packages the existing Python application once and runs as a non-root user.
+Compose supplies service discovery, health dependencies, read-only catalogue/index mounts, a model
+cache, and persistent PostgreSQL state. Ingestion remains explicit so an API restart cannot silently
+rewrite database state. Live builds, repeated ingestion, search/product requests, and UI health
+were verified on 2026-09-11. The image installs CPU-only PyTorch and resolves runtime dependencies
+offline from the builder's wheel directory. API/UI ports bind to loopback only. The API container
+health check requires search and product storage; the optional LLM query component can remain
+disabled in the default mock configuration.

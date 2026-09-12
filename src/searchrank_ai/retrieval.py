@@ -534,6 +534,11 @@ def _add_artifact_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL_NAME)
     parser.add_argument("--revision", default=DEFAULT_MODEL_REVISION)
     parser.add_argument("--device")
+    parser.add_argument(
+        "--local-files-only",
+        action="store_true",
+        help="load the embedding model from the local cache without network metadata checks",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -545,6 +550,11 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--model", default=DEFAULT_MODEL_NAME)
     build.add_argument("--revision", default=DEFAULT_MODEL_REVISION)
     build.add_argument("--device")
+    build.add_argument(
+        "--local-files-only",
+        action="store_true",
+        help="load the embedding model from the local cache without network metadata checks",
+    )
     search = commands.add_parser("search", help="search using BM25, semantic, or hybrid ranking")
     _add_artifact_arguments(search)
     search.add_argument("--query", required=True)
@@ -568,7 +578,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    encoder = SentenceTransformerEncoder(args.model, revision=args.revision, device=args.device)
+    encoder = SentenceTransformerEncoder(
+        args.model,
+        revision=args.revision,
+        device=args.device,
+        local_files_only=getattr(args, "local_files_only", False),
+    )
     if args.command == "build-semantic":
         index = SemanticIndex.from_catalogue(args.catalogue, encoder)
         index.save(args.output)

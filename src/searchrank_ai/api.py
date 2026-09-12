@@ -108,11 +108,11 @@ def create_app(
     @app.get("/health", response_model=HealthResponse, tags=["system"])
     async def health(request: Request) -> HealthResponse:
         active: AppServices = request.app.state.services
-        components = active.components
+        components, errors = await run_in_threadpool(active.health)
         return HealthResponse(
             status="ok" if all(components.values()) else "degraded",
             components=components,
-            errors=active.errors,
+            errors=errors,
         )
 
     @app.post("/search", response_model=SearchResponse, responses=common_errors, tags=["catalogue"])

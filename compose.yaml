@@ -1,0 +1,81 @@
+name: searchrank-ai
+
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+
+x-app-environment: &app-environment
+  SEARCHRANK_ENVIRONMENT: development
+  SEARCHRANK_LOG_LEVEL: INFO
+  SEARCHRANK_CATALOGUE_PATH: /app/data/processed/suresh_91mobiles_2008_2026/catalogue.csv
+  SEARCHRANK_BM25_INDEX_PATH: /app/artifacts/bm25/phase2-index.json
+  SEARCHRANK_SEMANTIC_INDEX_PATH: /app/artifacts/semantic/phase3-index.npz
+  SEARCHRANK_EMBEDDING_DEVICE: cpu
+  SEARCHRANK_EMBEDDING_LOCAL_ONLY: "0"
+  SEARCHRANK_DATABASE_URL: postgresql://searchrank:searchrank@database:5432/searchrank
+  SEARCHRANK_LLM_PROVIDER: ${SEARCHRANK_LLM_PROVIDER:-mock}
+  SEARCHRANK_LLM_MODEL: ${SEARCHRANK_LLM_MODEL:-}
+  SEARCHRANK_LLM_API_KEY: ${SEARCHRANK_LLM_API_KEY:-}
+  HF_HOME: /home/searchrank/.cache/huggingface
+
+services:
+  database:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: searchrank
+      POSTGRES_USER: searchrank
+      POSTGRES_PASSWORD: searchrank
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U searchrank -d searchrank"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: *app-build
+    command: ["python", "-m", "uvicorn", "searchrank_ai.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment: *app-environment
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json, urllib.request; c=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3))['components']; assert c['search'] and c['products']"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+      - ./artifacts:/app/artifacts:ro
+      - model_cache:/home/searchrank/.cache/huggingface
+
+  ui:
+    build: *app-build
+    command: ["python", "-m", "streamlit", "run", "/app/streamlit_app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    environment:
+      SEARCHRANK_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8501:8501"
+
+  ingest:
+    profiles: ["setup"]
+    build: *app-build
+    command: ["python", "-m", "searchrank_ai.storage", "ingest", "--catalogue", "/app/data/processed/suresh_91mobiles_2008_2026/catalogue.csv", "--semantic-index", "/app/artifacts/semantic/phase3-index.npz"]
+    environment: *app-environment
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+      - ./artifacts:/app/artifacts:ro
+
+volumes:
+  postgres_data:
+  model_cache:
