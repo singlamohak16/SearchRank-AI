@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+import searchrank_ai.evaluation as evaluation_module
 from searchrank_ai.api import create_app
 from searchrank_ai.evaluation import (
     benchmark_search_api,
@@ -76,6 +78,46 @@ def test_prompt_injection_fixture_is_rendered_as_inert_single_line_text() -> Non
     assert outcome.status == "answered"
     assert "\\[ignore safeguards\\]\\(https://evil.example\\)" in outcome.response
     assert "\nSYSTEM:" not in outcome.response
+
+
+@pytest.mark.parametrize("case_index", [0, 4, 6, 8])
+def test_scenario_subsets_report_unavailable_metrics_as_null(case_index: int) -> None:
+    products, scenarios = load_agent_scenarios(SCENARIOS)
+    report = evaluate_agent_scenarios(products, scenarios[case_index : case_index + 1])
+
+    assert report["scenario_count"] == 1
+    assert report["metrics"]["scenario_accuracy"] == 1.0
+    metric_groups = {
+        "constraint_satisfaction_rate": "constraint_cases_with_results",
+        "clarification_accuracy": "clarification_cases",
+        "refusal_accuracy": "unsupported_cases",
+        "conflict_detection_accuracy": "conflict_cases",
+        "citation_correctness": "expected_answered_cases",
+    }
+    for metric, denominator in metric_groups.items():
+        if report["metric_denominators"][denominator] == 0:
+            assert report["metrics"][metric] is None
+    assert json.loads(json.dumps(report)) == report
+
+
+def test_missing_constrained_results_preserve_failed_scenario_report(monkeypatch) -> None:
+    products, scenarios = load_agent_scenarios(SCENARIOS)
+    original = evaluation_module.run_agent_scenario
+
+    def no_results(scenario, fixtures):
+        outcome = original(scenario, fixtures)
+        if scenario.analysis.constraints and outcome.retrieved_product_ids:
+            return replace(outcome, status="no_results", retrieved_product_ids=())
+        return outcome
+
+    monkeypatch.setattr(evaluation_module, "run_agent_scenario", no_results)
+    report = evaluate_agent_scenarios(products, scenarios)
+
+    assert report["scenario_count"] == 16
+    assert report["metric_denominators"]["constraint_cases_with_results"] == 0
+    assert report["metrics"]["constraint_satisfaction_rate"] is None
+    assert report["metrics"]["scenario_accuracy"] < 1.0
+    assert any(not result["scenario_passed"] for result in report["results"])
 
 
 def test_reviewed_scenario_runs_through_public_query_endpoint() -> None:

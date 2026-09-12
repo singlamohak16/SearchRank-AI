@@ -35,8 +35,13 @@ def test_postgres_ingestion_lookup_and_vector_search() -> None:
         encoder_identifier="synthetic-encoder@1",
     )
     try:
+        with pytest.raises(psycopg.Error):
+            storage.check_readiness(batch.catalogue_sha256)
         storage.initialize_schema(batch.dimension)
+        assert not storage.check_readiness(batch.catalogue_sha256)
         first_summary = storage.ingest(batch)
+        assert storage.check_readiness(batch.catalogue_sha256)
+        assert not storage.check_readiness("wrong-catalogue")
         second_summary = storage.ingest(batch)
         lookup = storage.get_product_details(
             ["91mobiles:second", "91mobiles:missing", "91mobiles:first"]
@@ -54,6 +59,11 @@ def test_postgres_ingestion_lookup_and_vector_search() -> None:
             "91mobiles:second",
         ]
         assert results[0].cosine_similarity == pytest.approx(1.0)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"DELETE FROM {schema}.products WHERE product_id = %s", (products[0].product_id,)
+            )
+        assert not storage.check_readiness(batch.catalogue_sha256)
     finally:
         with connection.transaction(), connection.cursor() as cursor:
             cursor.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")

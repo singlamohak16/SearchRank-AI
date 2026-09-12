@@ -89,6 +89,11 @@ These values show deterministic behavior around supplied model decisions. The be
 request analysis and answer draft, so it cannot support a claim about live-LLM accuracy, prompt
 robustness across arbitrary attacks, or answer quality in the wild.
 
+Metrics with no applicable scenarios are represented as JSON `null`, with zero in their matching
+denominator field. They are not scored as zero or perfect accuracy. This permits valid subsets and
+preserves the report when a regression leaves no constrained results. An entirely empty scenario
+set remains invalid; failed statuses still reduce scenario and status accuracy.
+
 ## Engineering measurements
 
 Environment recorded on 2026-09-11:
@@ -200,6 +205,29 @@ checks passed. The named database and model-cache volumes persist across `docker
 first-time model downloads still require internet access.
 
 ## Known limitations and failure cases
+
+### Review fixes — 2026-09-12
+
+The original Compose gate used component-presence flags, which could pass even when PostgreSQL
+connected to an uninitialized schema. The health endpoint now performs a read-only storage probe
+on every request: it checks ingestion metadata/schema version, a positive recorded count matching
+the actual row count, the loaded retrieval catalogue hash (when retrieval is available), and one
+readable complete product record. Driver failures produce sanitized unready responses. Dependent
+query readiness becomes false while local search remains available. No ingestion, reconnection,
+or database repair occurs during health checks; a broken connection may require an API restart.
+This is an ingestion/readability probe, not a full per-row content or embedding integrity audit.
+
+The evaluator previously raised on empty metric categories. It now emits `null`/zero-denominator
+metrics while retaining the other metrics and per-scenario failures. Regression coverage includes
+individual scenario categories and a full run with constrained results removed.
+
+The review-fix host run produced **315 passed and six integration skips** on 2026-09-12. The
+focused suite passed **54 tests**. Live database/container verification could not be repeated:
+the Docker engine returned HTTP 500 when listing containers. The previous 2026-09-11 live results
+above apply to the earlier revision, not to this fix. Expanded PostgreSQL regression coverage is
+available through the existing opt-in integration test once a test database is available.
+
+### Remaining boundaries
 
 - The retrieval judgments remain small and catalogue-specific; family relevance is not independent
   real-world product-quality labeling.

@@ -10,6 +10,11 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+
+from searchrank_ai.api import create_app
+from searchrank_ai.services import AppServices
+from searchrank_ai.storage import PostgresStorage
 
 
 @pytest.mark.parametrize(
@@ -39,6 +44,46 @@ def test_dockerfile_uses_pinned_python_and_non_root_runtime() -> None:
     assert "USER searchrank" in dockerfile
     assert 'CMD ["python", "-m", "uvicorn"' in dockerfile
     assert "COPY . ." not in dockerfile
+
+
+def test_missing_schema_fails_actual_container_readiness(monkeypatch) -> None:
+    class MissingSchemaConnection:
+        def cursor(self):
+            raise RuntimeError("missing schema; sensitive driver details")
+
+    storage = PostgresStorage(MissingSchemaConnection())
+    services = AppServices(
+        search=object(),
+        products=storage,
+        query=object(),
+        _product_readiness=storage.check_readiness,
+    )
+    with TestClient(create_app(services)) as client:
+        health = client.get("/health")
+    body = health.json()
+    assert body["components"] == {"search": True, "products": False, "query": False}
+    assert "sensitive" not in health.text
+    compose = Path("compose.yaml").read_text(encoding="utf-8")
+    line = next(line for line in compose.splitlines() if "c=json.load" in line)
+    command = json.loads(line.split("test:", 1)[1].strip())[-1]
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_a, **_kw: io.StringIO(health.text))
+    with pytest.raises(AssertionError):
+        exec(command, {})
+
+
+def test_health_rechecks_storage_and_recovers_without_stale_errors() -> None:
+    states = iter([True, False, True])
+    services = AppServices(
+        search=object(),
+        products=object(),
+        query=object(),
+        _product_readiness=lambda: next(states),
+    )
+    with TestClient(create_app(services)) as client:
+        responses = [client.get("/health").json() for _ in range(3)]
+    assert [response["status"] for response in responses] == ["ok", "degraded", "ok"]
+    assert responses[-1]["errors"] == {}
+    assert services.errors == {}
 
 
 def test_compose_declares_database_api_ui_and_setup_ingestion() -> None:

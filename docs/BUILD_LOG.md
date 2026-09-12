@@ -432,3 +432,21 @@ Post-restart continuation on 2026-09-11:
 - The host's direct database test and real-LLM opt-in remained skipped. The Linux run separately
   covers the database; no real LLM was called. All recorded warnings and conditions are in the
   Phase 7 report.
+
+## 2026-09-12 — Phase 7 pull-request review fixes
+
+- Replaced presence-only product readiness in the health response with a fresh, read-only database
+  probe for schema/ingestion metadata, matching positive row counts, retrieval catalogue identity,
+  and readable product evidence. The existing Compose gate now rejects missing-schema failures.
+- Kept local search independent of storage failure; dependent query readiness follows storage.
+  Driver details are not exposed, and readiness snapshots recover without stale error messages.
+- Made zero-denominator evaluation metrics JSON `null` while retaining the rest of the report.
+  Valid subsets and missing constrained-result regressions no longer abort aggregation.
+- Added regression tests for missing schema, metadata/count/hash failures, readable evidence,
+  readiness recovery, subset categories, and failed constrained scenarios. Expanded the opt-in
+  PostgreSQL integration test; it was not run during this fix because Docker was unavailable.
+- Validation: full host suite **315 passed, six integration skips**. The 16-case benchmark retains
+  its expected metrics. The focused storage/API/evaluation/container suite passed **54 tests**.
+- Docker's local engine returned HTTP 500 when listing project containers, so no fresh live
+  container/database verification is claimed. No containers or database records were changed.
+- Changes remain local on `phase/07-evaluation`; no commit, push, or merge was performed.

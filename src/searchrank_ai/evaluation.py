@@ -242,9 +242,9 @@ def run_agent_scenario(
     return build_agent_scenario_workflow(scenario, products).invoke(scenario.user_request)
 
 
-def _rate(values: Sequence[bool]) -> float:
+def _rate(values: Sequence[bool]) -> float | None:
     if not values:
-        raise ValueError("cannot calculate a rate without applicable scenarios")
+        return None
     return sum(values) / len(values)
 
 

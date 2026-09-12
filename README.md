@@ -370,6 +370,9 @@ container start may download the pinned embedding model into a named cache volum
 credentials only through the environment; the default mock keeps interactive `/query` unavailable.
 The API health response is therefore `degraded` with `search` and `products` ready and `query`
 disabled. Compose requires search and product storage to be ready before starting the UI.
+Each health request now probes database ingestion metadata, positive/matching product counts,
+alignment with the loaded catalogue hash, and readable product evidence. A missing schema,
+incomplete ingestion, or failed database read makes storage unready without disabling local search.
 The image uses CPU-only PyTorch, and published ports bind only to this computer's loopback address.
 
 To repeat the four live HTTP checks against the running stack:
@@ -436,7 +439,7 @@ part of the engineering work, not active laptop scope.
 | 4 | PostgreSQL and pgvector persistence | Complete and merged |
 | 5 | Agentic RAG workflow and evidence tools | Complete and merged |
 | 6 | FastAPI backend and Streamlit demonstration | Complete and merged |
-| 7 | Evaluation, hardening, and Docker Compose | Complete locally; push/PR pending |
+| 7 | Evaluation, hardening, and Docker Compose | PR #8 open; review fixes implemented locally |
 | 8 | Final documentation and portfolio release | Not started |
 
 Each phase is developed, tested, documented, reviewed, and merged separately. This keeps the Git
