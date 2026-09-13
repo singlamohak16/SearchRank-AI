@@ -59,6 +59,7 @@ class AppServices:
     products: ProductService | None = None
     errors: dict[str, str] = field(default_factory=dict)
     _closers: tuple[Callable[[], None], ...] = field(default=(), repr=False)
+    _product_readiness: Callable[[], bool] | None = field(default=None, repr=False)
 
     @property
     def components(self) -> dict[str, bool]:
@@ -71,6 +72,26 @@ class AppServices:
     def close(self) -> None:
         for closer in reversed(self._closers):
             closer()
+
+    def health(self) -> tuple[dict[str, bool], dict[str, str]]:
+        """Return a fresh readiness snapshot without changing startup service ownership."""
+        components = self.components
+        errors = dict(self.errors)
+        if components["products"] and self._product_readiness is not None:
+            try:
+                components["products"] = self._product_readiness()
+            except Exception:
+                # Do not expose driver errors, connection strings, or credentials.
+                components["products"] = False
+            if not components["products"]:
+                errors["products"] = (
+                    "Product storage is unavailable or catalogue ingestion "
+                    "is incomplete or mismatched."
+                )
+        if components["query"] and not (components["search"] and components["products"]):
+            components["query"] = False
+            errors["query"] = "The query workflow requires ready search and product storage."
+        return components, errors
 
 
 def build_application_services(config: AppConfig | None = None) -> AppServices:
@@ -115,6 +136,8 @@ def build_application_services(config: AppConfig | None = None) -> AppServices:
             storage = PostgresStorage.connect(active.database_url)
             services.products = storage
             services._closers = (storage.close,)
+            expected_hash = retriever.catalogue_sha256 if retriever is not None else None
+            services._product_readiness = lambda: storage.check_readiness(expected_hash)
         except Exception:
             LOGGER.exception("Product storage initialization failed")
             services.errors["products"] = "PostgreSQL product storage could not be connected."

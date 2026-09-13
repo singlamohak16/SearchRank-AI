@@ -370,3 +370,83 @@ Validation:
 - Dependency consistency and diff whitespace checks passed.
 
 No live database, paid provider, deployment, merge, or Phase 7 work was performed for these fixes.
+
+## 2026-09-11 — Phase 7: evaluation, hardening, and Docker configuration
+
+Status: Phase 7 complete locally on `phase/07-evaluation`, including live Docker verification after
+installation and restart. Local commits were authorized on 2026-09-11; push and pull request remain
+pending separate approval.
+
+- Fast-forwarded local `main` to merged Phase 6 pull request #7 and created
+  `phase/07-evaluation`.
+- Added 16 reviewed scripted-agent scenarios, bringing the combined retrieval/agent scenario count
+  to 36 without mixing their different evidence boundaries.
+- Added deterministic agent metrics with explicit denominators, outcome details, and reproducible
+  CLI output.
+- Added a warmed in-process API latency harness around the real hybrid retriever.
+- Added an offline-only model option to retrieval evaluation and semantic index builds after a
+  cached-model run attempted unnecessary network metadata requests.
+- Added adversarial, metric, loader, API-to-workflow, and container-configuration tests.
+- Added a two-stage non-root image, PostgreSQL/pgvector + API + Streamlit Compose topology, read-only
+  data mounts, health checks, named volumes, and an opt-in ingestion service.
+- Added the detailed Phase 7 measurement and limitations report.
+
+Measured results:
+
+- Retrieval: the 20-case BM25, semantic, and hybrid report reproduced Phase 3 exactly; hybrid
+  `alpha = 0.25` remained selected.
+- Agent: 16/16 scenarios matched expected status, route, tool sequence, and retry count with a
+  scripted mock; average tool calls were 2.1875.
+- API: 50 warmed in-process hybrid searches measured 12.9782 ms median and 16.7325 ms p95.
+- Indexing: BM25 took 0.2327 seconds; semantic indexing took 56.1828 seconds on CPU. Both artifact
+  hashes matched their earlier versions.
+- Initially, Compose YAML parsed and static checks passed while Docker was unavailable. The
+  post-installation continuation below records the live results.
+
+Initial validation before installing Docker:
+
+- `python -m pytest -q`: 296 passed; Docker, live-LLM, and live-database integrations were skipped.
+- Focused Phase 7 evaluation/container suite: 16 passed; live Docker validation was skipped.
+- Ruff lint and formatting passed for 57 files after formatting corrections.
+- Dependency consistency, Compose YAML parsing, and Git whitespace checks passed.
+
+Post-restart continuation on 2026-09-11:
+
+- Verified WSL2 and Docker Engine 29.7.2 with Compose 5.5.1; started PostgreSQL 16.15.
+- Added CPU-only PyTorch to the image. Fixed a real image-build conflict caused by installing
+  multiple versions from the wheel directory; runtime now resolves the package offline from it.
+- Bound API/UI ports to loopback and made API container health depend on usable search and product
+  storage. Added four regression cases for the readiness gate.
+- Built all application images and ingested 3,062 products with 384-dimensional embeddings twice;
+  both ingestion reports retained the same catalogue hash and model identifier.
+- Started the database, API, and UI; verified search/product readiness, Streamlit health, non-root
+  runtime identity, and container package consistency. Default query requests correctly return 503
+  until a real provider is configured.
+- Added four opt-in live HTTP checks for all three search modes, strict constraints, database-backed
+  product evidence, invalid requests, unavailable products, and UI health.
+- Final full host suite: **305 passed, two skipped**, including Docker configuration and live HTTP
+  cases. A fresh temporary test directory resolved Windows permissions from an earlier attempt
+  with 55 setup errors; no assertions were weakened.
+- Disposable Linux container suite: **25 passed**, including actual PostgreSQL ingestion, lookup,
+  vector search, evaluation, API, and Streamlit rendering. Its temporary test schema was removed.
+- The host's direct database test and real-LLM opt-in remained skipped. The Linux run separately
+  covers the database; no real LLM was called. All recorded warnings and conditions are in the
+  Phase 7 report.
+
+## 2026-09-12 — Phase 7 pull-request review fixes
+
+- Replaced presence-only product readiness in the health response with a fresh, read-only database
+  probe for schema/ingestion metadata, matching positive row counts, retrieval catalogue identity,
+  and readable product evidence. The existing Compose gate now rejects missing-schema failures.
+- Kept local search independent of storage failure; dependent query readiness follows storage.
+  Driver details are not exposed, and readiness snapshots recover without stale error messages.
+- Made zero-denominator evaluation metrics JSON `null` while retaining the rest of the report.
+  Valid subsets and missing constrained-result regressions no longer abort aggregation.
+- Added regression tests for missing schema, metadata/count/hash failures, readable evidence,
+  readiness recovery, subset categories, and failed constrained scenarios. Expanded the opt-in
+  PostgreSQL integration test; it was not run during this fix because Docker was unavailable.
+- Validation: full host suite **315 passed, six integration skips**. The 16-case benchmark retains
+  its expected metrics. The focused storage/API/evaluation/container suite passed **54 tests**.
+- Docker's local engine returned HTTP 500 when listing project containers, so no fresh live
+  container/database verification is claimed. No containers or database records were changed.
+- Changes remain local on `phase/07-evaluation`; no commit, push, or merge was performed.

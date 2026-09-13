@@ -1,6 +1,7 @@
 """Component-aware production assembly tests without external services."""
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import searchrank_ai.services as service_module
 from searchrank_ai.config import AppConfig
@@ -37,12 +38,16 @@ def test_ready_components_are_wired_and_owned_storage_is_closed(
     for path in paths:
         path.touch()
 
-    retriever = object()
+    retriever = SimpleNamespace(catalogue_sha256="test-hash")
     provider = object()
     query = object()
     closed = []
 
     class Storage:
+        def check_readiness(self, expected_hash):
+            assert expected_hash == "test-hash"
+            return True
+
         def close(self):
             closed.append(True)
 
@@ -80,5 +85,6 @@ def test_ready_components_are_wired_and_owned_storage_is_closed(
     assert services.products is storage
     assert services.query is query
     assert services.errors == {}
+    assert all(services.health()[0].values())
     services.close()
     assert closed == [True]

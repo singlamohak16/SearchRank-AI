@@ -369,6 +369,36 @@ class PostgresStorage:
             encoder_identifier=batch.encoder_identifier,
         )
 
+    def check_readiness(self, expected_catalogue_sha256: str | None = None) -> bool:
+        """Read ingestion metadata and product evidence; never initialize or repair storage."""
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT schema_version, catalogue_sha256, product_count, "
+                f"(SELECT COUNT(*) FROM {self._name('products')}) "
+                f"FROM {self._name('catalogue_metadata')} WHERE singleton = true"
+            )
+            metadata = cursor.fetchone()
+            if metadata is None:
+                return False
+            version, catalogue_hash, recorded_count, actual_count = metadata
+            if (
+                version != SCHEMA_VERSION
+                or recorded_count <= 0
+                or actual_count != recorded_count
+                or (
+                    expected_catalogue_sha256 is not None
+                    and catalogue_hash != expected_catalogue_sha256
+                )
+            ):
+                return False
+            columns = ", ".join(PRODUCT_COLUMNS)
+            cursor.execute(f"SELECT {columns} FROM {self._name('products')} LIMIT 1")
+            row = cursor.fetchone()
+            if row is None:
+                return False
+            _product_from_row(row)
+        return True
+
     def get_product_details(self, product_ids: Sequence[str]) -> ProductLookup:
         """Return complete records in requested order and report every unknown ID."""
         if isinstance(product_ids, str):

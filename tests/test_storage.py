@@ -16,6 +16,8 @@ from searchrank_ai.data_audit import sha256
 from searchrank_ai.mobile_catalogue import FINAL_FIELDS
 from searchrank_ai.semantic import SemanticIndex
 from searchrank_ai.storage import (
+    PRODUCT_COLUMNS,
+    SCHEMA_VERSION,
     CatalogueBatch,
     PostgresStorage,
     StoredProduct,
@@ -125,6 +127,34 @@ def test_connect_uses_autocommit_for_explicit_transaction_model(
         "database_url": "postgresql://example.test/searchrank",
         "autocommit": True,
     }
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [None, (1, "hash", 0, 0), (1, "hash", 2, 1), (1, "other", 1, 1), (999, "hash", 1, 1)],
+)
+def test_readiness_rejects_incomplete_or_mismatched_catalogue(metadata) -> None:
+    cursor = FakeCursor(fetchone=metadata)
+    storage = PostgresStorage(FakeConnection(cursor))
+    assert storage.check_readiness("hash") is False
+    assert len(cursor.executions) == 1
+    assert "COUNT(*)" in cursor.executions[0][0]
+
+
+@pytest.mark.parametrize("has_product", [False, True])
+def test_readiness_requires_readable_product_evidence(tmp_path, has_product) -> None:
+    product = _batch(tmp_path).products[0]
+    row = tuple(getattr(product, column) for column in PRODUCT_COLUMNS)
+    values = iter([(SCHEMA_VERSION, "hash", 1, 1), row if has_product else None])
+
+    class ReadinessCursor(FakeCursor):
+        def fetchone(self):
+            return next(values)
+
+    cursor = ReadinessCursor()
+    storage = PostgresStorage(FakeConnection(cursor))
+    assert storage.check_readiness("hash") is has_product
+    assert "source_url" in cursor.executions[1][0]
 
 
 def test_catalogue_batch_preserves_all_fields_and_alignment(tmp_path: Path) -> None:

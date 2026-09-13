@@ -53,6 +53,14 @@ when all three endpoint components are ready; otherwise it reports `degraded`, b
 states, and safe setup messages. A failure in PostgreSQL therefore does not hide a working local
 search endpoint.
 
+Phase 7 review hardening adds a fresh, read-only PostgreSQL probe to each health request, executed
+off the async event loop. It checks the schema version, ingestion metadata, nonzero row count,
+catalogue hash alignment with loaded retrieval, and a decoded product record. Missing tables,
+incomplete ingestion, mismatches, and driver failures report products (and dependent queries) as
+unready. Probe errors are sanitized and snapshots do not retain stale failures after recovery.
+This does not reconnect a broken connection or ingest data; a dead connection may require an API
+restart. Injected test services may provide their own readiness callback.
+
 API startup is offline-first. `SEARCHRANK_EMBEDDING_LOCAL_ONLY=1` prevents surprise network access
 and uses the model cached while building the Phase 3 semantic index. Set it to `0` only when an
 explicit first-time download is intended.

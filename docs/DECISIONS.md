@@ -319,3 +319,46 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Limitation:** One shared database connection and synchronous services are acceptable for a local
   demonstration, not a concurrency or deployment claim. Phase 7 will measure before adding
   infrastructure.
+
+## D-021 — Separate retrieval quality from scripted agent enforcement metrics
+
+- **Date:** 2026-09-11
+- **Status:** Accepted for Phase 7
+- **Decision:** Keep the 20 catalogue-grounded retrieval judgments separate from 16 synthetic,
+  scripted-agent scenarios. Report their combined breadth as 36 reviewed scenarios, but never pool
+  their metrics or imply the mock-agent results measure live-model understanding.
+- **Metrics:** Record exact status, route, tool sequence, retry, constraint, clarification, refusal,
+  conflict, citation, unsupported-claim, and average-tool-call behavior with explicit denominators.
+- **Reason:** The workflow's deterministic safety boundary can be tested reproducibly without an API
+  key, while retrieval relevance still uses the adopted catalogue and pinned product IDs.
+- **Alternative:** A real-provider-only benchmark would be costly and nondeterministic and could not
+  replace downstream unit checks. Replaying saved outcomes would not exercise the real graph and
+  tools, so each scripted case runs through the actual LangGraph and verifier instead.
+- **Limitation:** Perfect scripted-case metrics do not establish real-model extraction accuracy or
+  robustness to arbitrary prompt injection.
+
+## D-022 — Measure warmed local search separately and containerize the existing boundaries
+
+- **Date:** 2026-09-11
+- **Status:** Accepted; live container verification completed on 2026-09-11
+- **Decision:** Measure sequential `POST /search` latency through FastAPI's in-process TestClient
+  with the real cached hybrid retriever. Containerize the existing API and Streamlit processes in
+  one non-root Python image and compose them with PostgreSQL/pgvector; keep ingestion an explicit
+  one-shot setup profile.
+- **Reason:** This yields a reproducible local application-overhead measurement without pretending
+  to measure network, database, LLM, concurrency, or deployment latency. One image avoids needless
+  services while Compose supplies the deferred database and repeatable process wiring.
+- **Data boundary:** Raw/processed data, generated indexes, model cache, and database storage are not
+  baked into the image. Catalogue and index mounts are read-only; model and database state use named
+  volumes; provider secrets remain environment-only.
+- **Alternative:** Automatic ingestion on every API start would mix schema mutation with serving and
+  slow restarts. Kubernetes, Redis, a reverse proxy, and separate build pipelines remain unjustified.
+- **Verification:** Docker builds, repeated ingestion of 3,062 products, API/UI health, three search
+  modes, and product evidence checks passed. A Linux container passed 25 regression tests including
+  PostgreSQL ingestion, lookup, and vector search. Runtime execution used UID/GID 999, not root.
+- **Hardening:** Use CPU-only PyTorch, resolve dependencies from downloaded wheels instead of
+  installing every wheel version, bind host ports to loopback, and require search/product readiness
+  before starting the UI. Query readiness is optional because the default mock is test-only.
+- **Limitation:** This is a local demonstration. Image tags and dependency ranges are not a complete
+  reproducibility lock; a fresh build can select newer compatible releases. Real-provider queries
+  require separate configuration and were not evaluated.
