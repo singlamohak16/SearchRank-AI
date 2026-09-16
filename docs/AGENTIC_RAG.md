@@ -95,6 +95,11 @@ when normalizing criteria; natural-language interpretation still depends on the 
 
 ## Providers and secrets
 
+The separately approved Gemini extension is documented in [Gemini setup](GEMINI_SETUP.md).
+It reuses the workflow's task prompts through `StructuredJSONProvider` and adds provider-specific
+structured-output restrictions without changing catalogue filters or evidence-verifier rules.
+OpenAI configuration remains separate and the network-free mock remains the default.
+
 `LLMProvider` is an application-owned interface. `MockLLMProvider` is scripted and network-free,
 which makes route and safety tests deterministic. `OpenAIResponsesProvider` is an optional real
 adapter using the Responses API with strict JSON-schema output, `store=False`, and catalogue data

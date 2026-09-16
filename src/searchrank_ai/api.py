@@ -24,6 +24,7 @@ from searchrank_ai.api_models import (
     SearchResultResponse,
 )
 from searchrank_ai.config import AppConfig
+from searchrank_ai.llm import ProviderUnavailableError
 from searchrank_ai.logging_config import configure_logging
 from searchrank_ai.services import AppServices, build_application_services
 
@@ -147,6 +148,8 @@ def create_app(
                 payload.request,
                 conversation_context=tuple(payload.conversation_context),
             )
+        except ProviderUnavailableError as error:
+            raise APIProblem(503, "provider_unavailable", str(error)) from None
         except ValueError as error:
             raise APIProblem(422, "invalid_query", str(error)) from error
         return QueryResponse.from_domain(outcome)

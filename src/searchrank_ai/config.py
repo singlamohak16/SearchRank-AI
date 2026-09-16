@@ -55,6 +55,7 @@ class AppConfig:
     semantic_index_path: Path = Path("artifacts/semantic/phase3-index.npz")
     embedding_device: str = "cpu"
     embedding_local_only: bool = True
+    gemini_free_tier_confirmed: bool = False
 
     def __post_init__(self) -> None:
         if self.environment not in _VALID_ENVIRONMENTS:
@@ -76,13 +77,21 @@ class AppConfig:
     @classmethod
     def from_environment(cls) -> AppConfig:
         """Build configuration from the process environment using safe defaults."""
+        provider = os.getenv("SEARCHRANK_LLM_PROVIDER", "mock").strip().lower()
         return cls(
             environment=os.getenv("SEARCHRANK_ENVIRONMENT", "development").strip().lower(),
             log_level=os.getenv("SEARCHRANK_LOG_LEVEL", "INFO").strip().upper(),
             database_url=_optional_environment_value("SEARCHRANK_DATABASE_URL"),
-            llm_provider=os.getenv("SEARCHRANK_LLM_PROVIDER", "mock").strip().lower(),
+            llm_provider=provider,
             llm_model=_optional_environment_value("SEARCHRANK_LLM_MODEL"),
-            llm_api_key=_optional_environment_value("SEARCHRANK_LLM_API_KEY"),
+            llm_api_key=(
+                _optional_environment_value("GEMINI_API_KEY")
+                if provider == "gemini"
+                else _optional_environment_value("SEARCHRANK_LLM_API_KEY")
+            ),
+            gemini_free_tier_confirmed=_environment_bool(
+                "SEARCHRANK_GEMINI_FREE_TIER_CONFIRMED", False
+            ),
             catalogue_path=_environment_path(
                 "SEARCHRANK_CATALOGUE_PATH",
                 "data/processed/suresh_91mobiles_2008_2026/catalogue.csv",

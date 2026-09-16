@@ -36,7 +36,10 @@ services:
   api:
     build: *app-build
     command: ["python", "-m", "uvicorn", "searchrank_ai.api:app", "--host", "0.0.0.0", "--port", "8000"]
-    environment: *app-environment
+    environment:
+      <<: *app-environment
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      SEARCHRANK_GEMINI_FREE_TIER_CONFIRMED: ${SEARCHRANK_GEMINI_FREE_TIER_CONFIRMED:-0}
     depends_on:
       database:
         condition: service_healthy

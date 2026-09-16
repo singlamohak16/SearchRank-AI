@@ -40,9 +40,14 @@ inside a focused retrieval and reasoning workflow.
 
 ## Current project status
 
-**Phase 0 through Phase 6 are merged into `main`. Phase 7 is complete locally on
-`phase/07-evaluation`, including live Docker builds, ingestion, API/UI checks, and evaluation.
-GitHub publication and pull request are pending.**
+**Phases 0 through 7 are merged into `main` (Phase 7: PR #8). The approved optional Gemini
+integration adds live model-backed queries without starting Phase 8.**
+
+The Gemini extension supports a separately configured free-tier project. See
+[Gemini setup and limitations](docs/GEMINI_SETUP.md) for private key handling, startup, quota
+behavior, and actual live-test results. The default provider remains a network-free test mock.
+Live Gemini smoke checks have passed for constrained search, comparison (including tied ratings),
+and unrelated-question refusal. They are not a broad live-model quality benchmark.
 
 What works today:
 
@@ -68,7 +73,7 @@ What works today:
 - One permitted search reformulation and a four-tool-call ceiling.
 - Structured answer generation whose values and product/source citations must pass deterministic
   verification before rendering.
-- A configurable LLM interface, network-free mock, and optional OpenAI Responses API adapter.
+- A configurable LLM interface, network-free mock, and optional OpenAI Responses/Gemini adapters.
 - Four validated FastAPI endpoints for health, retrieval, agent queries, and product details.
 - Component-aware readiness and stable validation, not-found, and unavailable-service errors.
 - One Streamlit page that calls the API and exposes results, constraints, grounded answers,
@@ -184,7 +189,7 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-The current tests require no API key. Future provider credentials will be read from environment
+The ordinary tests require no API key. Provider credentials are read from environment
 variables documented in `.env.example`; real credentials must never be committed.
 
 ### Reproduce the cleaned catalogue
@@ -216,11 +221,16 @@ python -m ruff format --check .
 python -m pip check
 ```
 
-The latest full Phase 7 run produced **305 passing tests and two skipped integration tests**, with
+The initial full Phase 7 run produced **305 passing tests and two skipped integration tests**, with
 Docker configuration and live API/UI tests enabled. The host skipped the direct PostgreSQL test
 and live-LLM opt-in. A separate Linux container run passed **25 tests**, including the real
 PostgreSQL/pgvector integration. Ordinary offline runs also skip the four opt-in HTTP checks.
 The evaluation report records the exact conditions and reproduction commands.
+
+The optional Gemini extension's 2026-09-16 validation passed **359 offline host tests**, then
+**363 host tests with live API/UI checks enabled**, **131 installed-package container checks**, and
+**three separate live Gemini workflow checks**. These overlapping suites are not summed together;
+[Gemini setup](docs/GEMINI_SETUP.md) records their skips, conditions, and limitations.
 
 ### Build and search the BM25 baseline
 
@@ -402,7 +412,8 @@ SearchRank-AI/
 │   ├── agent_models.py        # typed workflow, claim, citation, and outcome contracts
 │   ├── agent_tools.py         # search, details, and deterministic verification tools
 │   ├── evidence_policy.py     # fixed field labels and comparison field/direction rules
-│   ├── llm.py                 # configurable mock and optional OpenAI providers
+│   ├── llm.py                 # provider contract, mock, shared prompts, OpenAI adapter
+│   ├── gemini.py              # opt-in Gemini transport and evidence-bound schemas
 │   ├── workflow.py            # bounded LangGraph routes and response rendering
 │   ├── api_models.py          # validated public request and response contracts
 │   ├── services.py            # component-aware runtime assembly

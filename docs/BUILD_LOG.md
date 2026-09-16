@@ -450,3 +450,39 @@ Post-restart continuation on 2026-09-11:
 - Docker's local engine returned HTTP 500 when listing project containers, so no fresh live
   container/database verification is claimed. No containers or database records were changed.
 - Changes remain local on `phase/07-evaluation`; no commit, push, or merge was performed.
+
+## 2026-09-16 — Resume the approved Gemini integration
+
+- Resumed the Gemini extension approved on 2026-09-14, separately from Phase 8. Existing changes
+  on `phase/07-gemini-integration` were preserved; no Git publication was authorized or performed.
+- Confirmed the dedicated SearchRank-AI AI Studio project still showed Free tier. The saved key
+  remains environment-only, goes only to the API container, and was not displayed or written to
+  repository files. Billing was not enabled.
+- Completed the standard-library REST adapter, shared task prompts, provider-specific configuration,
+  sanitized provider-error responses, separate query timeout, and Windows startup helper.
+- Kept the evidence verifier intact. Live diagnostics identified omitted comparison citations and
+  tied ratings incorrectly represented as a sole winner. Added complete-citation instructions and
+  deterministic unique-winner schema restrictions; ties remain cited facts, not arbitrary winners.
+- Added offline credential, transport, schema, tie, API-error, and container-isolation coverage.
+  Updated the live test to require complete facts on ties and exact full-group comparisons for
+  unique winners instead of demanding two sole-winner claims when one criterion actually tied.
+- Final offline run: **359 passed, 10 intentionally skipped**, one Starlette/AnyIO deprecation
+  warning; **42 Gemini adapter tests passed** separately. Ruff lint and formatting passed for all
+  63 Python files, and dependency consistency passed.
+- Live Gemini workflow run with the real catalogue and PostgreSQL: **3 passed**. Recorded query
+  times were 10.34 seconds (search), 25.06 seconds (comparison), and 11.43 seconds (unsupported).
+  These are individual smoke observations, not latency or model-quality benchmark results.
+- Initial failed live runs and their causes are retained in `docs/GEMINI_SETUP.md`. No verifier
+  rule was relaxed to obtain a pass.
+- Docker's startup hit the previously identified stale temporary socket problem. Preserved
+  `run-backup-20260916-172517` and `docker-secrets-engine-backup-20260916-172517` beside the original
+  temporary directories, then restarted Docker Engine 29.7.2. No database volume was removed or
+  re-ingested. This is a recovery workaround, not a permanent Docker startup fix.
+- Rebuilt and started the normal API/UI images with the private-key helper. The installed Gemini
+  adapter matched the tested source hash, the API ran as UID 999, and ports remained loopback-only.
+  `/health` reported search/query/products ready. The full host suite with actual HTTP checks passed
+  **363 tests, six skipped**. A separate installed-package Linux regression suite passed **131 tests**
+  without source overrides or Gemini credentials; runtime dependency consistency also passed.
+- Submitted the comparison through the actual Streamlit website. It returned `answered`, zero
+  retries, ten verified facts and one verified price comparison; rating ties remained facts.
+  The workflow panel showed verification passed with no issues. Left the running app open locally.

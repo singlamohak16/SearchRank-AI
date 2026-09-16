@@ -19,15 +19,17 @@ class APIClient:
         base_url: str,
         *,
         timeout_seconds: float = 30,
+        query_timeout_seconds: float = 90,
         opener: Callable[..., Any] = urlopen,
     ) -> None:
         normalized = base_url.strip().rstrip("/")
         if not normalized.startswith(("http://", "https://")):
             raise ValueError("API URL must start with http:// or https://")
-        if timeout_seconds <= 0:
+        if timeout_seconds <= 0 or query_timeout_seconds <= 0:
             raise ValueError("timeout must be positive")
         self.base_url = normalized
         self.timeout_seconds = timeout_seconds
+        self.query_timeout_seconds = query_timeout_seconds
         self._opener = opener
 
     @staticmethod
@@ -47,7 +49,8 @@ class APIClient:
             headers={"Accept": "application/json", "Content-Type": "application/json"},
         )
         try:
-            with self._opener(request, timeout=self.timeout_seconds) as response:
+            timeout = self.query_timeout_seconds if path == "/query" else self.timeout_seconds
+            with self._opener(request, timeout=timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
             try:
