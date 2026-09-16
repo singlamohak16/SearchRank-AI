@@ -98,6 +98,16 @@ def test_compose_declares_database_api_ui_and_setup_ingestion() -> None:
     assert "SEARCHRANK_LLM_API_KEY: ${SEARCHRANK_LLM_API_KEY:-}" in compose
 
 
+def test_gemini_key_is_only_forwarded_to_api_and_never_hardcoded():
+    compose = Path("compose.yaml").read_text(encoding="utf-8")
+    before_api, api_and_rest = compose.split("  api:\n", 1)
+    api, rest = api_and_rest.split("  ui:\n", 1)
+    assert "GEMINI_API_KEY" not in before_api
+    assert "GEMINI_API_KEY: ${GEMINI_API_KEY:-}" in api
+    assert "SEARCHRANK_GEMINI_FREE_TIER_CONFIRMED:-0" in api
+    assert "GEMINI_API_KEY" not in rest
+
+
 @pytest.mark.integration
 def test_docker_compose_configuration_is_accepted_when_docker_is_installed() -> None:
     if shutil.which("docker") is None:

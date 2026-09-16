@@ -56,6 +56,22 @@ def test_client_encodes_product_ids_as_one_path_segment() -> None:
     assert calls[0].full_url.endswith("/products/91mobiles%3Aphone%20one")
 
 
+def test_query_waits_for_bounded_multi_call_workflow_without_retry():
+    calls = []
+
+    def opener(request, *, timeout):
+        calls.append(timeout)
+        return FakeResponse({})
+
+    client = APIClient("http://localhost:8000", opener=opener)
+    client.query({"request": "Compare phones"})
+    client.health()
+    assert calls == [90, 30]
+
+    with pytest.raises(ValueError, match="positive"):
+        APIClient("http://localhost:8000", query_timeout_seconds=0)
+
+
 def test_client_surfaces_safe_api_and_connection_errors() -> None:
     body = io.BytesIO(
         json.dumps({"error": {"message": "Search artefacts are unavailable."}}).encode()

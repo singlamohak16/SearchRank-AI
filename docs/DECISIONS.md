@@ -362,3 +362,23 @@ evaluation choices remain deliberately open until their relevant phases.
 - **Limitation:** This is a local demonstration. Image tags and dependency ranges are not a complete
   reproducibility lock; a fresh build can select newer compatible releases. Real-provider queries
   require separate configuration and were not evaluated.
+
+## D-023 — Add an opt-in Gemini adapter without weakening catalogue verification
+
+- **Date:** 2026-09-16 (integration approved on 2026-09-14)
+- **Status:** Accepted for the approved pre-Phase-8 extension
+- **Decision:** Reuse the existing structured-task interface with a small standard-library Gemini
+  REST adapter and the explicitly selected `gemini-3.1-flash-lite` model. Keep the default mock,
+  require separate free-tier confirmation, and keep the Gemini key isolated from OpenAI settings.
+- **Reason:** The user needs interactive model-backed queries without paid API usage. The selected
+  AI Studio project showed Free tier; the application still cannot enforce Google's billing state.
+- **Correctness:** Preserve the verifier. Constrain criteria, citations, and directional winners
+  using supplied catalogue evidence; express ties as factual values instead of sole-winner claims.
+  Shared prompts and transport failures have offline coverage; live smoke checks remain opt-in.
+- **Alternatives:** Paid OpenAI usage conflicts with the budget. A local model would require a
+  separate hardware/runtime choice; deterministic search alone remains usable but does not provide
+  model-backed interpretation. No provider failover, quota bypass, or automatic HTTP retry is added.
+- **Privacy and limits:** Google receives questions, supplied context, and at most five product
+  records. Free-tier data-use terms and variable quotas apply; avoid private input. Keys remain
+  outside repository files, but local administrator/Docker access can inspect environments.
+- **Scope:** This is not Phase 8, a production deployment, or a live-model quality benchmark.

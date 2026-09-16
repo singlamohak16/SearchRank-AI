@@ -193,45 +193,13 @@ ANSWER_DRAFT_SCHEMA = {
 }
 
 
-class OpenAIResponsesProvider:
-    """Optional real provider using structured outputs from the Responses API."""
-
-    def __init__(self, model: str, api_key: str, *, client: Any = None) -> None:
-        if not model.strip() or not api_key.strip():
-            raise ValueError("the OpenAI provider requires a model and API key")
-        if client is None:
-            try:
-                from openai import OpenAI
-            except ImportError as error:
-                raise RuntimeError("install the OpenAI dependency to use this provider") from error
-            client = OpenAI(api_key=api_key)
-        self.model = model.strip()
-        self._client = client
+class StructuredJSONProvider:
+    """Shared task prompts and domain parsing, independent of provider transport."""
 
     def _request_json(
         self, operation: str, instructions: str, payload: dict[str, Any], schema: dict[str, Any]
     ) -> dict[str, Any]:
-        response = self._client.responses.create(
-            model=self.model,
-            instructions=instructions,
-            input=json.dumps(payload, ensure_ascii=False, default=str),
-            text={
-                "format": {
-                    "type": "json_schema",
-                    "name": operation,
-                    "schema": schema,
-                    "strict": True,
-                }
-            },
-            max_output_tokens=2000,
-            store=False,
-        )
-        if not response.output_text:
-            raise RuntimeError(f"OpenAI returned no text for {operation}")
-        value = json.loads(response.output_text)
-        if not isinstance(value, dict):
-            raise ValueError(f"OpenAI returned a non-object for {operation}")
-        return value
+        raise NotImplementedError
 
     def analyze_request(
         self, user_request: str, conversation_context: Sequence[str]
@@ -301,10 +269,63 @@ Never insert prose into this field. Never call a product best without an explici
         return AnswerDraft.from_mapping(value)
 
 
+class OpenAIResponsesProvider(StructuredJSONProvider):
+    """Optional real provider using structured outputs from the Responses API."""
+
+    def __init__(self, model: str, api_key: str, *, client: Any = None) -> None:
+        if not model.strip() or not api_key.strip():
+            raise ValueError("the OpenAI provider requires a model and API key")
+        if client is None:
+            try:
+                from openai import OpenAI
+            except ImportError as error:
+                raise RuntimeError("install the OpenAI dependency to use this provider") from error
+            client = OpenAI(api_key=api_key)
+        self.model = model.strip()
+        self._client = client
+
+    def _request_json(
+        self, operation: str, instructions: str, payload: dict[str, Any], schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        response = self._client.responses.create(
+            model=self.model,
+            instructions=instructions,
+            input=json.dumps(payload, ensure_ascii=False, default=str),
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": operation,
+                    "schema": schema,
+                    "strict": True,
+                }
+            },
+            max_output_tokens=2000,
+            store=False,
+        )
+        if not response.output_text:
+            raise RuntimeError(f"OpenAI returned no text for {operation}")
+        value = json.loads(response.output_text)
+        if not isinstance(value, dict):
+            raise ValueError(f"OpenAI returned a non-object for {operation}")
+        return value
+
+
+class ProviderUnavailableError(RuntimeError):
+    """A safe, user-facing provider failure without upstream bodies or credentials."""
+
+
 def build_llm_provider(config: AppConfig) -> LLMProvider:
     """Build the configured provider without exposing credentials in errors or reprs."""
     if config.llm_provider == "mock":
         return MockLLMProvider()
+    if config.llm_provider == "gemini":
+        from searchrank_ai.gemini import GeminiProvider
+
+        if config.llm_model is None or config.llm_api_key is None:
+            raise ValueError("Gemini requires SEARCHRANK_LLM_MODEL and GEMINI_API_KEY")
+        if not config.gemini_free_tier_confirmed:
+            raise ValueError("Confirm the project's free tier before enabling Gemini")
+        return GeminiProvider(config.llm_model, config.llm_api_key)
     if config.llm_provider == "openai":
         if config.llm_model is None or config.llm_api_key is None:
             raise ValueError(
