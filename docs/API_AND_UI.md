@@ -81,13 +81,18 @@ Then start the processes in separate terminals from the repository root:
 
 ```powershell
 $env:SEARCHRANK_API_URL = "http://127.0.0.1:8000"
-.venv\Scripts\python.exe -m streamlit run src\searchrank_ai\streamlit_app.py
+.venv\Scripts\python.exe -m streamlit run src\searchrank_ai\streamlit_app.py --theme.base=light --theme.primaryColor="#205ce4" --browser.gatherUsageStats=false
 ```
 
 The Streamlit page checks API health, provides a direct catalogue-search form with the supported
 filters, and provides a natural-language search/comparison form. It displays the API's extracted
 constraints, ranked results, grounded Markdown response, source links, retrieved IDs, workflow
 path, tool calls, and verification summary.
+
+The approved pre-Phase-8 redesign adds Discover, Compare phones, and Ask AI tabs, responsive
+product cards, and a session-local shortlist of up to three phones. Search and AI calls require
+explicit submission; selecting phones or changing pages does not repeat those requests. See
+[UI_REDESIGN.md](UI_REDESIGN.md) for the complete interaction and validation record.
 
 ## Boundary and limitations
 
@@ -98,8 +103,9 @@ path, tool calls, and verification summary.
 - One shared PostgreSQL connection is sufficient for this demonstration. Connection pooling,
   authentication, rate limiting, CORS policy, deployment TLS, and production monitoring are not
   implemented.
-- Product and model text remains untrusted. Untrusted product names are escaped before controlled
-  Markdown rendering, Streamlit does not enable unsafe HTML, and the API still releases workflow
+- Product and model text remains untrusted. Product values are escaped in controlled HTML templates
+  passed through Streamlit's sanitized `st.html`; source/image URLs are restricted to catalogue HTTPS
+  hosts. Model responses use Markdown without unsafe HTML. The API still releases factual workflow
   answers only after Phase 5 deterministic verification.
 - No API latency or user-experience metric is claimed in Phase 6; those measurements belong to the
   controlled Phase 7 evaluation.

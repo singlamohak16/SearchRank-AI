@@ -96,6 +96,10 @@ def test_compose_declares_database_api_ui_and_setup_ingestion() -> None:
     assert "./data/processed:/app/data/processed:ro" in compose
     assert "./artifacts:/app/artifacts:ro" in compose
     assert "SEARCHRANK_LLM_API_KEY: ${SEARCHRANK_LLM_API_KEY:-}" in compose
+    ui = compose.split("  ui:\n", 1)[1].split("  ingest:\n", 1)[0]
+    assert "--theme.base=light" in ui
+    assert "--theme.primaryColor=#205ce4" in ui
+    assert "--browser.gatherUsageStats=false" in ui
 
 
 def test_gemini_key_is_only_forwarded_to_api_and_never_hardcoded():

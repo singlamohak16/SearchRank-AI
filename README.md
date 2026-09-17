@@ -18,7 +18,7 @@ which every product claim can be traced to a product ID and source URL.
 
 This is an incremental portfolio project. The data foundation, BM25 and semantic retrieval,
 measured hybrid ranking, strict catalogue filters, PostgreSQL/pgvector storage, and bounded agent
-workflow are complete. A FastAPI boundary and a thin Streamlit demonstration are now implemented.
+workflow are complete. A FastAPI boundary and a shopping-style Streamlit interface are implemented.
 
 ## Why this project is technically interesting
 
@@ -41,7 +41,8 @@ inside a focused retrieval and reasoning workflow.
 ## Current project status
 
 **Phases 0 through 7 are merged into `main` (Phase 7: PR #8). The approved optional Gemini
-integration adds live model-backed queries without starting Phase 8.**
+integration is merged through PR #9. The approved pre-Phase-8 UI redesign adds a shopping-style
+search and comparison interface. Phase 8 has not started.**
 
 The Gemini extension supports a separately configured free-tier project. See
 [Gemini setup and limitations](docs/GEMINI_SETUP.md) for private key handling, startup, quota
@@ -76,8 +77,9 @@ What works today:
 - A configurable LLM interface, network-free mock, and optional OpenAI Responses/Gemini adapters.
 - Four validated FastAPI endpoints for health, retrieval, agent queries, and product details.
 - Component-aware readiness and stable validation, not-found, and unavailable-service errors.
-- One Streamlit page that calls the API and exposes results, constraints, grounded answers,
-  citations, and workflow evidence.
+- A responsive Streamlit interface with Discover, Compare phones, and Ask AI tabs: product cards,
+  explicit search filters, a three-phone shortlist, and inspectable AI evidence. See the
+  [UI redesign guide](docs/UI_REDESIGN.md) for behavior, safety boundaries, and validation.
 - A 36-scenario evaluation portfolio: 20 catalogue-grounded retrieval cases and 16 separately
   reported scripted-agent cases covering routes, constraints, citations, and adversarial failures.
 - Reproducible agent metrics, alpha ablation, fresh index timing, and warmed local search-API
