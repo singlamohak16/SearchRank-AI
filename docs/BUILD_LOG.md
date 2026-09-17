@@ -486,3 +486,38 @@ Post-restart continuation on 2026-09-11:
 - Submitted the comparison through the actual Streamlit website. It returned `answered`, zero
   retries, ten verified facts and one verified price comparison; rating ties remained facts.
   The workflow panel showed verification passed with no issues. Left the running app open locally.
+
+## 2026-09-17 — Finish the approved pre-Phase-8 UI redesign
+
+- Continued the shopping-style redesign begun on 2026-09-16 on `phase/07-ui-redesign`. Kept
+  Streamlit, the API contracts, catalogue, retrieval, storage, and Gemini verifier unchanged.
+  Phase 8 was not started and no commit, push, or pull request was made for this update.
+- Added responsive product cards, explicit filters and custom minimums, six-result pagination,
+  a three-phone session shortlist, side-by-side stored specifications, and a separate Ask AI form.
+  Results persist through selection changes; failed submissions clear stale answers. Missing
+  specifications stay missing, and displayed prices are explicitly historical catalogue values.
+- Escaped untrusted catalogue values, allowlisted HTTPS image/source hosts, retained native controls,
+  and separated presentation helpers. No dependencies or provider credentials were added to the UI.
+- Added interaction/security regressions. The initial full run had one offline smoke-test failure
+  caused by a cached API client reaching the running local service. Replaced that network assumption
+  with an explicit offline-health stub; the complete offline suite then passed **380 tests**, with
+  **10 opt-in integration skips**. Lint, formatting, and dependency checks passed. The existing
+  Starlette/AnyIO deprecation warning remains.
+- Repeated the full suite with actual API and preview-UI HTTP checks: **384 passed, six skipped**.
+  Direct PostgreSQL and separately opted-in provider integration suites were not re-enabled for
+  this UI-only change; the browser's explicit live Gemini smoke is recorded separately below.
+- Browser-tested real catalogue search and images, shortlist limits, and comparisons at desktop and
+  390 × 844 mobile size. Corrected a clipped masthead; the document stays within the mobile viewport
+  while the comparison table scrolls separately. Restored the original viewport afterward.
+- One explicit live Gemini search through the redesigned form returned `answered`, zero retries,
+  five verified facts and no verification issues. The evidence panel retained the Samsung brand,
+  INR 30,000 budget, 8 GB RAM, and 128 GB storage constraints. This is a smoke test, not a benchmark.
+- Documented interaction rules, local startup, safety boundaries, and limitations in
+  `docs/UI_REDESIGN.md`; updated the README and API/UI guide. Compose applies the light theme and
+  disables Streamlit usage telemetry only for the UI service.
+- On resuming later on 2026-09-17, verified that the completed UI image contained the exact tested
+  entrypoint and presentation-helper hashes. Recreated only the UI on loopback port 8501; the API
+  and PostgreSQL retained their container IDs and readiness. Runtime dependency consistency passed.
+  Browser search and two-phone comparison worked in the packaged UI. The final full suite against
+  ports 8000/8501 again passed **384 tests, six skipped**. The temporary port-8502 preview had already
+  stopped; left the normal website open instead. No Git publication was performed.

@@ -382,3 +382,19 @@ evaluation choices remain deliberately open until their relevant phases.
   records. Free-tier data-use terms and variable quotas apply; avoid private input. Keys remain
   outside repository files, but local administrator/Docker access can inspect environments.
 - **Scope:** This is not Phase 8, a production deployment, or a live-model quality benchmark.
+
+## D-024 — Improve the shopping experience without replacing the tested application
+
+- **Date:** 2026-09-17 (implementation began on 2026-09-16)
+- **Status:** Accepted for the approved pre-Phase-8 UI extension
+- **Decision:** Keep Streamlit/FastAPI and introduce Discover, Compare phones, and Ask AI tabs,
+  product cards, explicit forms, and a three-product session shortlist. Use existing product-detail
+  endpoints for evidence and images. Separate escaped presentation helpers from interaction code.
+- **Reason:** The existing backend already enforces constraints and verification. A frontend rewrite
+  would introduce another build toolchain and API boundary without improving those guarantees.
+- **Alternative:** A React storefront was deferred. Checkout, discounts, popularity claims, and
+  synthetic phone artwork would imply capabilities or evidence the project does not have.
+- **Safety:** Keep product data escaped, allowlist catalogue HTTPS links, show historical-price and
+  missing-data notices, and require explicit submissions before retrieval or AI requests.
+- **Limits:** Session-only selections, externally hosted images, native Streamlit layout constraints,
+  and no production or comprehensive accessibility claim. Details are in `docs/UI_REDESIGN.md`.
