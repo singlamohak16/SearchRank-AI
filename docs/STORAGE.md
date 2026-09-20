@@ -83,8 +83,9 @@ $env:SEARCHRANK_TEST_DATABASE_URL = "postgresql://username:password@localhost:54
 .venv\Scripts\python.exe -m pytest -m integration tests\test_storage_integration.py -q
 ```
 
-This machine had no PostgreSQL service during Phase 4, so that live test was skipped and no live
-database result is claimed. Docker setup remains Phase 7 work.
+At the Phase 4 checkpoint this machine had no PostgreSQL service, so that live test was skipped.
+Later Docker/database verification is recorded in [Phase 7](PHASE_7_EVALUATION.md); use
+[the current setup guide](SETUP.md) for the complete application.
 
 ## Limitations
 
@@ -92,5 +93,6 @@ database result is claimed. Docker setup remains Phase 7 work.
   existing semantic/provider boundary.
 - Database-backed BM25 or complete hybrid scoring is not introduced; Phase 3 remains the measured
   retrieval implementation.
-- No connection pooling, migrations framework, API, agent, or approximate vector index exists yet.
+- Storage has no connection-pooling framework, migration framework, or approximate vector index.
+  The API and agent added in subsequent phases are described in [architecture](ARCHITECTURE.md).
 - Creating the pgvector extension may require a database administrator on managed PostgreSQL.

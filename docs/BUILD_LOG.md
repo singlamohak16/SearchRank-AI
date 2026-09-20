@@ -521,3 +521,40 @@ Post-restart continuation on 2026-09-11:
   Browser search and two-phone comparison worked in the packaged UI. The final full suite against
   ports 8000/8501 again passed **384 tests, six skipped**. The temporary port-8502 preview had already
   stopped; left the normal website open instead. No Git publication was performed.
+
+## 2026-09-18 — Begin Phase 8 documentation and release preparation
+
+- Verified clean main matched origin/main at `34b5f40f2abe78220bc6b532297c728527a6b821`, with the
+  UI redesign merged, and created the approved local `phase/08-documentation` branch.
+- Rewrote the README as a first-person project introduction and replaced the outdated architecture
+  overview with the actual serving/data paths. Added setup, measured-results, and interview guides.
+  Kept live retailer integration deferred, the catalogue unchanged, and publication separately gated.
+- Reran all five retrieval configurations on the cached 3,062-product catalogue and 20 judgments.
+  Aggregate metrics and selected alpha 0.25 match the Phase 7 report exactly. Reran 16 scripted
+  agent scenarios: all passed. Reports remain ignored under `artifacts/evaluation/` with the
+  `phase8-retrieval-20260918.json` and `phase8-agent-20260918.json` filenames.
+- The local API refused connections. Captured the documented search response through FastAPI's
+  in-process TestClient using the real cached retriever instead; it returned Samsung Galaxy A26
+  256GB at the stored price INR 27,999. Captured a sanitized 503 from the injected search-only
+  application's unavailable query route. No Docker restart, ingestion, or provider request occurred.
+
+## 2026-09-19 — Complete local Phase 8 handoff
+
+- Resumed the saved work without discarding changes. Added the five-minute demo, recorded API
+  request/response examples, draft release notes, and approval checklist. Corrected stale storage
+  and evaluation wording while retaining historical phase measurements.
+- Added a read-only release checker and nine regression cases covering publishable local links,
+  redacted credential-pattern findings, private/generated files, size/binary review, and path bounds.
+- Full offline suite: **389 passed, 10 intentionally skipped, one existing Starlette/AnyIO warning**
+  in 32.00 s. No live-provider opt-ins or external service test URLs were enabled. Ruff lint,
+  formatting of all 73 Python files, dependency consistency, and Git whitespace checks passed.
+- Release checks passed for 83 candidate files: inline local file links, common secret patterns,
+  excluded data/environment paths, and a 2 MB per-file review threshold. Candidate content is under
+  1 MB. Separately scanned all 191 reachable Git blobs with the same credential patterns: no matches.
+  These bounded checks do not certify absence of all possible secrets or validate remote URLs.
+- Git object storage measured 738 KiB across 328 loose objects, with no packs or garbage. No file
+  deletion or history rewrite was needed; earlier audit evidence remains intentionally preserved.
+- Kept version `0.1.0.dev0`, credentials, application behavior, and Docker/database state unchanged.
+  No commits, pushes, pull requests, tags, releases, or other external writes were performed.
+  A fresh-machine install and new live container/provider run are not claimed. Publication remains
+  pending separate user approval; the proposed v0.1.0 version change is an explicit release step.
