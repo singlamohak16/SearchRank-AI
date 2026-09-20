@@ -398,3 +398,20 @@ evaluation choices remain deliberately open until their relevant phases.
   missing-data notices, and require explicit submissions before retrieval or AI requests.
 - **Limits:** Session-only selections, externally hosted images, native Streamlit layout constraints,
   and no production or comprehensive accessibility claim. Details are in `docs/UI_REDESIGN.md`.
+
+## D-025 — Consolidate final documentation without silently publishing a release
+
+- **Date:** 2026-09-19 (Phase 8 began on 2026-09-18)
+- **Status:** Accepted for Phase 8
+- **Decision:** Make the README a project introduction and maintain focused setup, architecture,
+  results, demonstration, interview, and release-preparation guides. Preserve historical reports
+  with explicit links to current documentation, rather than replacing past evidence with new claims.
+- **Reason:** A new reader needs one coherent setup path and a clear distinction between real
+  catalogue retrieval, scripted workflow evaluation, and historical live-provider smoke tests.
+- **Verification:** Rerun retrieval and scripted scenarios, capture a real in-process API example,
+  and add a small read-only release checker with regressions for redaction, local links, and file
+  hygiene. Scan reachable history separately; do not treat pattern scans as a security guarantee.
+- **Publication:** Keep the development package version, tags, commits, and remote writes unchanged
+  until separately authorized. Draft v0.1.0 notes are not a published release or a license decision.
+- **Deferred:** Live retailer APIs remain a post-Phase-8 scope discussion. No data source, ranking,
+  storage, UI behavior, or provider billing configuration changes in this phase.

@@ -1,508 +1,116 @@
 # SearchRank-AI
 
-> An evidence-grounded Agentic RAG project for smartphone search and comparison.
+An evidence-grounded smartphone search and comparison project built with Python, hybrid retrieval,
+LangGraph, FastAPI, PostgreSQL/pgvector, and Streamlit.
 
-## What I am building
+I built SearchRank-AI to explore a practical question: **can an AI shopping assistant explain its
+recommendations without making up phone specifications?** The project combines keyword and
+embedding search, applies strict catalogue filters in Python, and checks AI-generated facts and
+comparisons against retrieved product records before displaying them.
 
-I am building SearchRank-AI to explore a practical question: **how can an LLM help someone search
-and compare products without inventing specifications or ignoring strict requirements?**
+This is a portfolio demonstration using a **historical catalogue**, not an online shop. Prices,
+ratings, and availability are not live, and a higher search score does not mean a better phone.
 
-A user should eventually be able to ask:
+## What you can do
 
-> Compare OnePlus and Samsung phones under ₹30,000. Show only models with at least 8 GB RAM,
-> 128 GB storage, and a rating of 4 or above.
+- **Discover:** search 3,062 catalogue phones using BM25, semantic, or hybrid ranking. Apply brand,
+  price, RAM, storage, and rating constraints; inspect the component scores.
+- **Compare phones:** shortlist up to three phones and compare their stored specifications.
+  Missing values remain visibly unavailable.
+- **Ask AI:** with a separately configured provider, submit natural-language requests and inspect
+  the workflow, citations, and verification outcome. Unsupported or unverifiable claims are withheld.
 
-The system will understand the request, retrieve relevant smartphones, enforce the numeric filters
-in deterministic Python code, collect the complete product evidence, and generate a comparison in
-which every product claim can be traced to a product ID and source URL.
+Ordinary search and side-by-side comparison need no LLM key. The default `mock` provider is for
+automated tests; it deliberately does **not** enable interactive AI answers.
 
-This is an incremental portfolio project. The data foundation, BM25 and semantic retrieval,
-measured hybrid ranking, strict catalogue filters, PostgreSQL/pgvector storage, and bounded agent
-workflow are complete. A FastAPI boundary and a shopping-style Streamlit interface are implemented.
-
-## Why this project is technically interesting
-
-Product search combines two different problems:
-
-- **Relevance:** understanding phrases such as “good for gaming” or “strong battery life.”
-- **Correctness:** never returning a ₹40,000 phone for an “under ₹30,000” request.
-
-Semantic similarity can help with relevance, but it should not decide whether a product satisfies a
-hard constraint. SearchRank-AI therefore separates responsibilities:
-
-- BM25 and semantic retrieval will find relevant candidates.
-- Deterministic filters will enforce price, RAM, storage, brand, and rating requirements.
-- An LLM will interpret requests and explain comparisons, not override catalogue facts.
-- An evidence verifier will check factual claims and product citations before a response is returned.
-
-The project is not a model-training or collaborative-filtering system. It uses pretrained models
-inside a focused retrieval and reasoning workflow.
-
-## Current project status
-
-**Phases 0 through 7 are merged into `main` (Phase 7: PR #8). The approved optional Gemini
-integration is merged through PR #9. The approved pre-Phase-8 UI redesign adds a shopping-style
-search and comparison interface. Phase 8 has not started.**
-
-The Gemini extension supports a separately configured free-tier project. See
-[Gemini setup and limitations](docs/GEMINI_SETUP.md) for private key handling, startup, quota
-behavior, and actual live-test results. The default provider remains a network-free test mock.
-Live Gemini smoke checks have passed for constrained search, comparison (including tied ratings),
-and unrelated-question refusal. They are not a broad live-model quality benchmark.
-
-What works today:
-
-- Python package, configuration, logging, and quality-check foundations.
-- A reproducible audit and cleaning pipeline for the approved smartphone dataset.
-- Stable product IDs derived from unique source URLs.
-- Deterministic parsing for INR prices, RAM, storage, ratings, batteries, displays, and dates.
-- Explicit rejection reasons for records that are not filter-ready smartphones.
-- Preservation of every original row and value in local audit evidence.
-- A cleaned, core-only catalogue containing 3,062 smartphones.
-- A deterministic BM25 index and command-line keyword search with traceable product IDs.
-- A 12-query reviewed exact-model benchmark and reproducible Recall@10, MRR@10, and NDCG@10.
-- A pinned 384-dimensional sentence-transformer and reproducible local semantic index.
-- BM25, semantic, and hybrid search with explicit score components.
-- Deterministic maximum-price, minimum-RAM, minimum-storage, minimum-rating, and brand filters.
-- A 20-case reviewed retrieval benchmark with a measured hybrid weight of `alpha = 0.25`.
-- A PostgreSQL schema for all 18 catalogue fields and aligned pgvector embeddings.
-- Transactional, reproducible ingestion guarded by catalogue hash, product order, and model identity.
-- Ordered product-detail lookup with explicit missing IDs and database-backed cosine vector search.
-- One bounded LangGraph with separate search, comparison, clarification, unsupported, conflict,
-  and no-result routes.
-- Catalogue-search, product-details, and deterministic evidence-verification tools.
-- One permitted search reformulation and a four-tool-call ceiling.
-- Structured answer generation whose values and product/source citations must pass deterministic
-  verification before rendering.
-- A configurable LLM interface, network-free mock, and optional OpenAI Responses/Gemini adapters.
-- Four validated FastAPI endpoints for health, retrieval, agent queries, and product details.
-- Component-aware readiness and stable validation, not-found, and unavailable-service errors.
-- A responsive Streamlit interface with Discover, Compare phones, and Ask AI tabs: product cards,
-  explicit search filters, a three-phone shortlist, and inspectable AI evidence. See the
-  [UI redesign guide](docs/UI_REDESIGN.md) for behavior, safety boundaries, and validation.
-- A 36-scenario evaluation portfolio: 20 catalogue-grounded retrieval cases and 16 separately
-  reported scripted-agent cases covering routes, constraints, citations, and adversarial failures.
-- Reproducible agent metrics, alpha ablation, fresh index timing, and warmed local search-API
-  latency measurement with explicit environment and denominator records.
-- A non-root Docker image and Compose topology for PostgreSQL/pgvector, FastAPI, Streamlit, and
-  explicit catalogue ingestion.
-- Synthetic automated tests that do not require a paid API or network access.
-
-Not implemented or verified yet:
-
-- Real-provider agent-quality evaluation, authentication, rate limiting, concurrency testing, and
-  production deployment controls.
-
-This distinction is intentional: the repository only claims behavior that has actually been built
-and tested.
-
-## System design
+## How it works
 
 ```mermaid
-flowchart TD
-    U[User request] --> UI[Streamlit demonstration]
-    UI --> API[FastAPI backend]
-    API --> G[Bounded LangGraph workflow]
-    G --> Q[Understand request and extract constraints]
-    Q --> S[Catalogue Search Tool]
-    S --> B[BM25 retrieval]
-    S --> E[Semantic retrieval]
-    B --> H[Hybrid ranking]
-    E --> H
-    H --> F[Deterministic constraint filters]
-    F --> D[Product Details Tool]
-    D --> L[Grounded comparison generation]
-    L --> V[Evidence Verification Tool]
-    V --> R[Answer with product-ID citations]
-    IDX[(BM25 + semantic artifacts)] <--> S
-    DB <--> D
+flowchart LR
+    UI[Streamlit interface] --> API[FastAPI]
+    API --> Search[Strict filters + BM25 / semantic / hybrid search]
+    API --> Products[PostgreSQL product details]
+    API --> Agent[Bounded LangGraph workflow]
+    Agent --> Search
+    Agent --> Products
+    Agent --> LLM[Optional structured-output LLM]
+    Agent --> Verify[Python evidence checks + answer rendering]
 ```
 
-The implemented Phase 5 workflow has one bounded graph and three meaningful tools:
+Hybrid ranking combines normalized BM25 and cosine scores. The selected BM25 weight is 0.25.
+The API searches local BM25 and NumPy embedding indexes; PostgreSQL provides product evidence.
+There is also a tested pgvector cosine-search path, but it is **not** the API's hybrid ranking engine.
+See the [architecture guide](docs/ARCHITECTURE.md) for the boundaries and trade-offs.
 
-1. **Catalogue Search Tool** — retrieves and ranks product IDs, then applies strict filters.
-2. **Product Details Tool** — returns complete stored evidence for selected product IDs.
-3. **Evidence Verification Tool** — checks claims, numerical values, and product citations.
+## Run it locally
 
-## Phase 1: data pipeline
+Follow the [setup and troubleshooting guide](docs/SETUP.md) from a fresh clone. It covers:
+
+1. Installing Python dependencies and obtaining the source dataset separately.
+2. Auditing the data and building the two search indexes.
+3. Starting PostgreSQL, ingesting the catalogue, and starting the API/UI with Docker Compose.
+4. Checking readiness and, optionally, configuring Gemini after confirming your own free-tier status.
+
+Once running, open [the website](http://127.0.0.1:8501/) or
+[interactive API documentation](http://127.0.0.1:8000/docs).
+The [five-minute demo](docs/DEMO.md) includes requests, a recorded response, and an AI-free fallback.
+Do not put real credentials in repository files or share resolved Docker environment output.
+
+## Measured results
+
+Rerun on **2026-09-18**, using the same 3,062-product snapshot and 20 reviewed retrieval queries:
+
+| Search mode | Recall@10 | MRR@10 | NDCG@10 |
+|---|---:|---:|---:|
+| BM25 | 0.8111 | 0.8125 | 0.8090 |
+| Semantic | 0.9375 | 0.8875 | 0.8998 |
+| Hybrid, BM25 weight 0.25 | 0.9250 | 0.9500 | 0.9286 |
+
+Hybrid gave the best top-rank metrics among the tested configurations; semantic search had the
+highest recall. The same small set selected the weight and measured it—there is no held-out test set.
+
+All **16 scripted workflow scenarios** passed again. These exercise the real graph, tools, and
+verifier using supplied mock-model decisions and four synthetic products. They do not measure
+real-LLM accuracy. Historical live Gemini checks are smoke tests, not a model-quality benchmark.
+The [results report](docs/RESULTS.md) includes all weights, denominators, reproduction commands,
+timing conditions, and limitations.
+
+## Data and limitations
 
 The adopted source is Suresh Khadka's
 [Mobile Phones Specs & Prices Dataset (2008–2026)](https://www.kaggle.com/datasets/suresh2837/mobile-phones-specs-and-prices-dataset-20082026),
-which states that its records were collected from public 91mobiles listings.
-
-The pipeline processes the data as follows:
-
-```text
-unchanged source ZIP
-    -> checksum and 17-column schema validation
-    -> explicit price, rating, capacity, display, battery, date, and URL parsing
-    -> evidence-based eligibility rules with recorded rejection reasons
-    -> 18-column core smartphone catalogue
-    -> reproducible audit report, retained raw records, and fixed-seed samples
-```
-
-### Measured catalogue outcome
-
-| Measurement | Result |
-|---|---:|
-| Source rows | 4,000 |
-| Cleaned smartphone records | 3,062 |
-| Unique cleaned product IDs | 3,062 |
-| Brands represented | 70 |
-| Records with user ratings | 2,983 |
-| Exact duplicate source rows | 0 |
-| Automated tests | 142 passing |
-
-A record enters the cleaned catalogue only when it has a valid product name and source URL, a
-positive INR price, explicit RAM and storage, at least 1 GB RAM and 8 GB storage, and no
-“announced” or “to be announced” marker. These rules exclude feature phones and incomplete records
-without inventing facts or relying on price alone.
-
-### Core catalogue fields
-
-The final catalogue contains only the fields needed for search, comparison, and evidence:
-
-- Identity: `product_id`, `product_name`, `brand`
-- Strict filters: `price_inr`, `ram_gb`, `storage_gb`, `user_rating_5`
-- Comparison evidence: processor, battery, charging, display, rear camera, and front camera
-- Provenance: release date/status, source URL, and image URL
-
-At the user's direction, the final dataset excludes `spec_score`, `antutu_score`, `awards`,
-`expert_rating`, and `store`. Their original values are retained only in ignored audit evidence.
-
-Ratings explicitly stored on a `/10` scale are mathematically normalized to `/5`. Missing values
-remain empty; the pipeline never fills them from model knowledge.
-
-## Getting started
-
-### Requirements
-
-- Python 3.11 or newer
-- Git
-
-### Install the project
-
-```powershell
-git clone https://github.com/singlamohak16/SearchRank-AI.git
-cd SearchRank-AI
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-```
-
-The ordinary tests require no API key. Provider credentials are read from environment
-variables documented in `.env.example`; real credentials must never be committed.
-
-### Reproduce the cleaned catalogue
-
-The real dataset is not committed. Download the approved Kaggle archive and save it as:
-
-```text
-data/raw/suresh_91mobiles_2008_2026/source.zip
-```
-
-Then run:
-
-```powershell
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.mobile_catalogue `
-  --archive data\raw\suresh_91mobiles_2008_2026\source.zip `
-  --audit-dir artifacts\suresh_91mobiles_audit\new-run `
-  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv
-```
-
-The command refuses to overwrite existing outputs. Two complete runs with the adopted source
-produced byte-identical catalogues and audit evidence.
-
-### Run the quality checks
-
-```powershell
-python -m pytest -q
-python -m ruff check .
-python -m ruff format --check .
-python -m pip check
-```
-
-The initial full Phase 7 run produced **305 passing tests and two skipped integration tests**, with
-Docker configuration and live API/UI tests enabled. The host skipped the direct PostgreSQL test
-and live-LLM opt-in. A separate Linux container run passed **25 tests**, including the real
-PostgreSQL/pgvector integration. Ordinary offline runs also skip the four opt-in HTTP checks.
-The evaluation report records the exact conditions and reproduction commands.
-
-The optional Gemini extension's 2026-09-16 validation passed **359 offline host tests**, then
-**363 host tests with live API/UI checks enabled**, **131 installed-package container checks**, and
-**three separate live Gemini workflow checks**. These overlapping suites are not summed together;
-[Gemini setup](docs/GEMINI_SETUP.md) records their skips, conditions, and limitations.
-
-### Build and search the BM25 baseline
-
-After generating the local catalogue, build the ignored retrieval index:
-
-```powershell
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.bm25 build `
-  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
-  --output artifacts\bm25\phase2-index.json
-
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.bm25 search `
-  --index artifacts\bm25\phase2-index.json `
-  --query "snapdragon 8 gen 3 amoled" `
-  --limit 10
-```
-
-The direct BM25 command searches names and stored specification text without numeric or categorical
-shopping constraints. The hybrid retriever and API apply those filters separately. See the
-[Phase 2 retrieval report](docs/BM25_RETRIEVAL.md) for design, evaluation conditions, and limits.
-
-### Build and search the semantic and hybrid indexes
-
-The first semantic build downloads the pinned public model revision. Later runs can use the cached
-model without a network connection.
-
-```powershell
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.retrieval build-semantic `
-  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
-  --output artifacts\semantic\phase3-index.npz `
-  --device cpu
-
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.retrieval search `
-  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
-  --bm25-index artifacts\bm25\phase2-index.json `
-  --semantic-index artifacts\semantic\phase3-index.npz `
-  --mode hybrid --alpha 0.25 `
-  --query "oneplus nord 6" `
-  --max-price 40000 --min-ram 8 --min-storage 256 --min-rating 4.4 `
-  --include-brand OnePlus
-```
-
-All strict constraints are checked against structured catalogue fields before ranking. See the
-[Phase 3 retrieval report](docs/HYBRID_RETRIEVAL.md) for formulas, measurements, and limitations.
-
-### Load PostgreSQL and pgvector storage
-
-Phase 4 expects an existing PostgreSQL database in which the configured user may create the
-`vector` extension and the isolated `searchrank_ai` schema. Put the real connection string only in
-your local `.env` or shell environment:
-
-```powershell
-$env:SEARCHRANK_DATABASE_URL = "postgresql://username:password@localhost:5432/searchrank"
-
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.storage ingest `
-  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
-  --semantic-index artifacts\semantic\phase3-index.npz
-```
-
-The ingestion command creates the schema, loads or updates every product and embedding in one
-transaction, removes rows not present in the incoming catalogue, and records the catalogue hash,
-encoder identity, vector dimension, and product count. Re-running it with identical inputs leaves
-the same logical database state. Retrieve complete evidence by product ID with:
-
-```powershell
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.storage details `
-  91mobiles:xiaomi-redmi-turbo-5 91mobiles:unknown-phone
-```
-
-See the [Phase 4 storage report](docs/STORAGE.md) for schema, validation, integration-test setup,
-and current limitations.
-
-### Run the bounded agent workflow
-
-Phase 5 provides an application service rather than a public command. Construct `AgentWorkflow`
-with the existing hybrid retriever, a product-details repository such as `PostgresStorage`, the
-evidence verifier, and either the mock or configured real LLM provider. The graph classifies the
-request, validates constraints, searches, retrieves full evidence, generates a structured draft,
-and releases only claims that pass deterministic verification.
-
-Stored product records are checked against the strict constraints again before answer generation.
-Missing-information claims use verified product/field pairs and fixed wording; numerical comparison
-criteria are tied to an application-owned field and direction policy.
-
-The normal suite uses `MockLLMProvider` and never makes an API call. A live OpenAI smoke test is
-available only with a local key, explicit model, and `SEARCHRANK_RUN_LLM_INTEGRATION=1`. See the
-[Phase 5 agentic RAG report](docs/AGENTIC_RAG.md) for the routes, tool contracts, safeguards, and
-setup boundary.
-
-### Run the API and Streamlit demonstration
-
-The API loads the local catalogue and retrieval indexes, uses PostgreSQL for complete product
-records, and enables agent queries only when a real LLM provider is configured. It remains
-inspectable through `/health` when one of those components is unavailable. After completing the
-earlier setup steps, start the backend and UI in separate terminals:
-
-```powershell
-.venv\Scripts\python.exe -m uvicorn searchrank_ai.api:app --reload
-```
-
-```powershell
-$env:SEARCHRANK_API_URL = "http://127.0.0.1:8000"
-.venv\Scripts\python.exe -m streamlit run src\searchrank_ai\streamlit_app.py
-```
-
-Open `http://127.0.0.1:8000/docs` for the four-endpoint OpenAPI interface. The Streamlit URL is
-printed by Streamlit when it starts. API startup defaults to cached model files only; set
-`SEARCHRANK_EMBEDDING_LOCAL_ONLY=0` only for an intentional first-time model download. See the
-[Phase 6 API and UI guide](docs/API_AND_UI.md) for request contracts, readiness behavior, and
-limitations.
-
-### Run the Phase 7 evaluation
-
-The reviewed portfolio contains 20 catalogue retrieval cases and 16 scripted-agent workflow cases.
-They are kept separate because only the retrieval set uses the adopted catalogue, while the agent
-set measures deterministic control flow around mocked model decisions.
-
-```powershell
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.retrieval evaluate `
-  --catalogue data\processed\suresh_91mobiles_2008_2026\catalogue.csv `
-  --bm25-index artifacts\bm25\phase2-index.json `
-  --semantic-index artifacts\semantic\phase3-index.npz `
-  --cases evaluation\retrieval_v1.json --alphas 0.25 0.50 0.75 `
-  --local-files-only --output artifacts\evaluation\retrieval.json
-
-.venv\Scripts\python.exe -X utf8 -m searchrank_ai.evaluation agent `
-  --cases evaluation\agent_scenarios_v1.json `
-  --output artifacts\evaluation\agent.json
-```
-
-The measured results, metric definitions, environment, timing conditions, and limitations are in
-the [Phase 7 evaluation report](docs/PHASE_7_EVALUATION.md).
-
-### Run with Docker Compose
-
-The stack was built and verified on 2026-09-11 with Docker Desktop/WSL2. Start Docker Desktop,
-then run these commands after generating the local catalogue and retrieval artifacts:
-
-```powershell
-docker compose up -d database
-docker compose --profile setup run --rm --build ingest
-docker compose up --build -d api ui
-docker compose ps
-```
-
-The API is exposed on `http://127.0.0.1:8000` and Streamlit on `http://127.0.0.1:8501`. The first
-container start may download the pinned embedding model into a named cache volume. Set real LLM
-credentials only through the environment; the default mock keeps interactive `/query` unavailable.
-The API health response is therefore `degraded` with `search` and `products` ready and `query`
-disabled. Compose requires search and product storage to be ready before starting the UI.
-Each health request now probes database ingestion metadata, positive/matching product counts,
-alignment with the loaded catalogue hash, and readable product evidence. A missing schema,
-incomplete ingestion, or failed database read makes storage unready without disabling local search.
-The image uses CPU-only PyTorch, and published ports bind only to this computer's loopback address.
-
-To repeat the four live HTTP checks against the running stack:
-
-```powershell
-$env:SEARCHRANK_TEST_API_URL = "http://127.0.0.1:8000"
-$env:SEARCHRANK_TEST_UI_URL = "http://127.0.0.1:8501"
-python -m pytest -q tests/test_container_integration.py
-```
-
-`docker compose down` stops and removes the project containers and network while preserving the
-database and model-cache volumes. First-time builds require internet access; image tags and Python
-dependency ranges are not a complete version lock.
-
-## Repository structure
-
-```text
-SearchRank-AI/
-├── src/searchrank_ai/
-│   ├── config.py              # validated environment configuration
-│   ├── logging_config.py      # shared logging setup
-│   ├── mobile_catalogue.py    # adopted audit and cleaning pipeline
-│   ├── bm25.py                # deterministic keyword index, search, and evaluation
-│   ├── semantic.py            # search text, encoder adapter, and local vector index
-│   ├── retrieval.py           # semantic/hybrid ranking, filters, and comparison evaluation
-│   ├── storage.py             # PostgreSQL schema, ingestion, details, and pgvector search
-│   ├── agent_models.py        # typed workflow, claim, citation, and outcome contracts
-│   ├── agent_tools.py         # search, details, and deterministic verification tools
-│   ├── evidence_policy.py     # fixed field labels and comparison field/direction rules
-│   ├── llm.py                 # provider contract, mock, shared prompts, OpenAI adapter
-│   ├── gemini.py              # opt-in Gemini transport and evidence-bound schemas
-│   ├── workflow.py            # bounded LangGraph routes and response rendering
-│   ├── api_models.py          # validated public request and response contracts
-│   ├── services.py            # component-aware runtime assembly
-│   ├── api.py                 # four FastAPI endpoints and error mapping
-│   ├── api_client.py          # transport-only JSON client for the UI
-│   ├── streamlit_app.py       # one-page search and comparison demonstration
-│   ├── evaluation.py          # agent metrics and local API timing harness
-│   ├── data_audit.py          # retained historical laptop audit
-│   └── phone_audit.py         # retained rejected Amazon-phone audit
-├── tests/                     # synthetic unit and reproducibility tests
-├── evaluation/                # reviewed retrieval and scripted-agent scenarios
-├── docs/                      # architecture, decisions, audits, and evaluation notes
-├── data/                      # local raw/processed data; ignored by Git
-├── artifacts/                 # local audit/index outputs; ignored by Git
-├── .env.example
-├── AGENTS.md
-├── Dockerfile
-├── compose.yaml
-└── pyproject.toml
-```
-
-The rejected audit modules and reports remain in the repository because they document how the
-dataset decision changed when full-file evidence contradicted the initial preview. That history is
-part of the engineering work, not active laptop scope.
-
-## Roadmap
-
-| Phase | Deliverable | Status |
-|---:|---|---|
-| 0 | Repository and project foundation | Complete |
-| 1 | Dataset selection, audit, schema, and cleaning | Complete |
-| 2 | BM25 keyword retrieval baseline | Complete |
-| 3 | Semantic retrieval, hybrid ranking, and strict constraints | Complete |
-| 4 | PostgreSQL and pgvector persistence | Complete and merged |
-| 5 | Agentic RAG workflow and evidence tools | Complete and merged |
-| 6 | FastAPI backend and Streamlit demonstration | Complete and merged |
-| 7 | Evaluation, hardening, and Docker Compose | PR #8 open; review fixes implemented locally |
-| 8 | Final documentation and portfolio release | Not started |
-
-Each phase is developed, tested, documented, reviewed, and merged separately. This keeps the Git
-history believable and prevents later components from hiding weaknesses in the foundations.
-
-## Engineering principles
-
-- Treat catalogue text as untrusted input.
-- Keep product IDs traceable from source data to final citations.
-- Enforce strict numerical constraints with deterministic code.
-- Never invent missing specifications, URLs, or evaluation results.
-- Evaluate BM25, semantic, and hybrid retrieval separately before selecting a configuration.
-- Keep automated tests independent of paid APIs.
-- Document rejected approaches and failure cases alongside successful results.
-
-## Current limitations
-
-- The catalogue is a historical snapshot, not live price or inventory data.
-- The source has no rating-count field, so rating confidence cannot be weighted by review volume.
-- Some processor, rating, display, release-date, charging, and image values remain unavailable.
-- Product variants remain separate when the source provides distinct names and URLs.
-- Some release and specification claims have not been verified against manufacturers.
-- The direct PostgreSQL integration test needs a disposable test database; it passed inside Docker.
-  PostgreSQL is available only on the internal Compose network by default.
-- Kaggle lists the dataset as CC0, while the publisher also states learning/non-commercial use.
-  For caution, raw data, processed data, and generated audit artifacts are not committed.
-- The 20-case retrieval benchmark is still too small for broad search-quality claims. The separate
-  16-case agent benchmark uses scripted model decisions and synthetic products, so it validates
-  deterministic workflow behavior rather than real-model interpretation quality.
-- The API and Streamlit page are a local demonstration without authentication, rate limiting,
-  connection pooling, deployment TLS, measured concurrency, or real-network latency. Only warmed
-  in-process search latency has been measured.
-- Docker startup, repeated ingestion, all search modes, and API/UI health are verified locally.
-  Interactive `/query` needs a real LLM provider; no live-provider quality result is claimed.
-
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Adopted catalogue audit](docs/MOBILE_CATALOGUE_AUDIT.md)
-- [BM25 retrieval baseline](docs/BM25_RETRIEVAL.md)
-- [Semantic and hybrid retrieval](docs/HYBRID_RETRIEVAL.md)
-- [PostgreSQL and pgvector storage](docs/STORAGE.md)
-- [Agentic RAG workflow and evidence tools](docs/AGENTIC_RAG.md)
-- [FastAPI backend and Streamlit demonstration](docs/API_AND_UI.md)
-- [Phase 7 evaluation, hardening, and containers](docs/PHASE_7_EVALUATION.md)
-- [Decision log](docs/DECISIONS.md)
-- [Build log](docs/BUILD_LOG.md)
-- [Evaluation record](docs/EVALUATION.md)
-- [Dataset screening history](docs/DATASET_CANDIDATES.md)
-
-SearchRank-AI is intentionally being built as a system I can explain end to end: where the data
-came from, why records were retained or rejected, how retrieval will be evaluated, which decisions
-belong to deterministic code, and what evidence supports every generated answer.
+described by its publisher as originating from 91mobiles. The audited 2026-09-04 snapshot contains
+4,000 rows; deterministic cleaning retains 3,062 records and 18 core fields. IDs are derived from
+the original source URL slugs, and those URLs remain attached to the records.
+
+The publisher's CC0 label and learning/non-commercial usage note conflict. Raw data, cleaned data,
+embeddings, and generated reports are therefore **not redistributed in this repository**. See the
+[adoption audit](docs/MOBILE_CATALOGUE_AUDIT.md) for checksums and the exact cleaning rules.
+Earlier rejected laptop and phone audits are retained as decision history, not active data sources.
+
+This project does not independently certify scraped facts, infer missing specifications, process
+payments, or fetch current retailer inventory. Free-provider quotas and data-use conditions apply.
+The local app has no production authentication, load-testing claim, or comprehensive accessibility
+certification. Live retailer integration is deferred until after Phase 8 and requires a new scope decision.
+
+## Project guide
+
+| Read this | For |
+|---|---|
+| [Setup](docs/SETUP.md) | Installation, configuration, tests, and troubleshooting |
+| [Architecture](docs/ARCHITECTURE.md) | Runtime flow, data flow, and trust boundaries |
+| [Results](docs/RESULTS.md) | Measured retrieval/workflow results and reproduction |
+| [Demo](docs/DEMO.md) | A short walkthrough and API examples |
+| [Gemini setup](docs/GEMINI_SETUP.md) | Optional provider, privacy, and quota boundaries |
+| [API and UI](docs/API_AND_UI.md) / [UI design](docs/UI_REDESIGN.md) | Contracts and interaction details |
+| [Interview notes](docs/INTERVIEW.md) | Honest résumé bullets and technical questions |
+| [Release preparation](docs/RELEASE.md) | Draft notes and unpublished release checklist |
+| [Decisions](docs/DECISIONS.md) / [Build log](docs/BUILD_LOG.md) | Incremental engineering history |
+
+Application code is under `src/searchrank_ai/`, automated checks under `tests/`, and reviewed
+evaluation cases under `evaluation/`. Historical phase reports remain under `docs/`.
+
+Phases 0–7, Gemini integration, and the UI redesign are merged. Phase 8 prepares the final project
+documentation and release handoff; it does not itself publish a tag or release. The package remains
+`0.1.0.dev0` until a separately approved release/version change. No repository-wide code license has
+been selected; the dataset's label is not a license for this code.
